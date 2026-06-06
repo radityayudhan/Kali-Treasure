@@ -1,0 +1,12 @@
+streamlit
+pandas
+numpy
+folium
+streamlit-folium
+plotly
+statsmodels
+matplotlib
+seaborn
+json
+os
+warnings
