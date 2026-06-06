@@ -7,6 +7,3 @@ plotly
 statsmodels
 matplotlib
 seaborn
-json
-os
-warnings
