@@ -143,18 +143,24 @@ def load_ews_skema_data():
     df_kur = pd.read_csv(file_kur, sep=';', low_memory=False)
     df_sub = pd.read_csv(file_sub, sep=';', low_memory=False)
 
-    #  Buang UMi (Fokus murni efisiensi subsidi KUR)
+    # Buang UMi (Fokus murni efisiensi subsidi KUR)
     if 'NAMA_SKEMA' in df_kur.columns:
         df_kur = df_kur[df_kur['NAMA_SKEMA'].astype(str).str.upper() != 'UMI']
     
     if 'NAMA_WILAYAH' in df_kur.columns: df_kur.rename(columns={'NAMA_WILAYAH': 'NAMA_KABKOT'}, inplace=True)
     if 'NAMA_WILAYAH' in df_sub.columns: df_sub.rename(columns={'NAMA_WILAYAH': 'NAMA_KABKOT'}, inplace=True)
 
+    df_kur['NAMA_PROVINSI'] = df_kur['NAMA_PROVINSI'].astype(str).str.strip().str.upper()
+    df_sub['NAMA_PROVINSI'] = df_sub['NAMA_PROVINSI'].astype(str).str.strip().str.upper()
+    
     df_kur['NAMA_KABKOT'] = df_kur['NAMA_KABKOT'].astype(str).str.strip().str.upper()
     df_sub['NAMA_KABKOT'] = df_sub['NAMA_KABKOT'].astype(str).str.strip().str.upper()
 
     df_kur['NAMA_SKEMA'] = df_kur['NAMA_SKEMA'].astype(str).str.strip().str.upper()
     df_sub['NAMA_SKEMA'] = df_sub['NAMA_SKEMA'].astype(str).str.upper().str.split('-').str[0].str.strip()
+
+    df_kur['NAMA_SKEMA'] = df_kur['NAMA_SKEMA'].replace({'SUPERMI': 'SUPER MIKRO'})
+    df_sub['NAMA_SKEMA'] = df_sub['NAMA_SKEMA'].replace({'KECIL KHUSUS': 'KECIL'})
 
     df_kur['TAHUN'] = pd.to_numeric(df_kur['TAHUN'], errors='coerce').fillna(0)
     df_sub['TAHUN'] = pd.to_numeric(df_sub['TAHUN'], errors='coerce').fillna(0)

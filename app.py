@@ -744,69 +744,68 @@ with tab3:
     df_ews_master = load_ews_skema_data()
     
     if not df_ews_master.empty:
-        # Filter berdasarkan navigasi Sidebar
-        df_ews_filter = df_ews_master.copy()
-        if pilih_prov != "SEMUA":
-            df_ews_filter = df_ews_filter[df_ews_filter['NAMA_PROVINSI'] == pilih_prov]
         if pilih_kabkot != "SEMUA":
-            df_ews_filter = df_ews_filter[df_ews_filter['NAMA_KABKOT'] == pilih_kabkot]
-            
-        if not df_ews_filter.empty:
-            # --- PERBAIKAN: KONVERSI KE JUTAAN UNTUK SUMBU X & Y ---
-            df_ews_filter['PENYALURAN_JUTA'] = df_ews_filter['PENYALURAN_PER_DEBITUR'] / 1e6
-            df_ews_filter['SUBSIDI_JUTA'] = df_ews_filter['SUBSIDI_PER_DEBITUR'] / 1e6
-            
-            # Membuat Bubble Chart
-            fig_ews = px.scatter(
-                df_ews_filter, 
-                x='PENYALURAN_JUTA', # Gunakan kolom skala jutaan
-                y='SUBSIDI_JUTA',    # Gunakan kolom skala jutaan
-                size='TOTAL_DEBITUR', 
-                color='NAMA_SKEMA',
-                color_discrete_map={
-                    'MIKRO': '#10B981',         # Hijau
-                    'KECIL': "#35ABE1",         # Biru
-                    'SUPER MIKRO': "#E89910",   # Oranye
-                    'TKI': "#FF0D00"            # Merah
-                },
-                hover_name='NAMA_SKEMA',
-                hover_data={
-                    'NAMA_SKEMA': False, 
-                    'PENYALURAN_JUTA': False, # Sembunyikan angka jutaan dari pop-up
-                    'SUBSIDI_JUTA': False,    # Sembunyikan angka jutaan dari pop-up
-                    'TOTAL_DEBITUR': ':,',    # Format ribuan untuk orang
-                    'PENYALURAN_PER_DEBITUR': ':,.0f', # Tampilkan nominal asli
-                    'SUBSIDI_PER_DEBITUR': ':,.0f'     # Tampilkan nominal asli
-                },
-                title="Peta Inefisiensi Skema (Bubble Size = Jumlah Debitur)",
-                labels={
-                    'PENYALURAN_JUTA': 'Rata-rata Penyaluran per Debitur',
-                    'SUBSIDI_JUTA': 'Beban Subsidi Bunga per Debitur',
-                    'NAMA_SKEMA': 'Skema Kredit',
-                    'PENYALURAN_PER_DEBITUR': 'Penyaluran Asli (Rp)',
-                    'SUBSIDI_PER_DEBITUR': 'Subsidi Asli (Rp)'
-                }
-            )
-            
-            fig_ews.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)', 
-                paper_bgcolor='rgba(0,0,0,0)',
-                # Tambahkan suffix ' Juta' agar terbaca eksplisit tanpa singkatan ambigu
-                xaxis=dict(showgrid=True, gridcolor='#E5E7EB', ticksuffix=' Juta'),
-                yaxis=dict(showgrid=True, gridcolor='#E5E7EB', ticksuffix=' Juta'),
-                height=550
-            )
-            
-            # Menarik garis bantu (Rata-rata wilayah) dengan data skala jutaan
-            avg_penyaluran = df_ews_filter['PENYALURAN_JUTA'].median()
-            avg_subsidi = df_ews_filter['SUBSIDI_JUTA'].median()
-            fig_ews.add_vline(x=avg_penyaluran, line_dash="dash", line_color="red", opacity=0.5)
-            fig_ews.add_hline(y=avg_subsidi, line_dash="dash", line_color="red", opacity=0.5)
-            
-            st.plotly_chart(fig_ews, use_container_width=True)
-            st.caption(f"Garis putus-putus merah menandakan median (nilai tengah) efisiensi wilayah {pilih_kabkot}. Titik yang berada di atas garis horizontal dan di kiri garis vertikal adalah skema dengan potensi inefisiensi anggaran.")
+            st.warning("Grafik inefisiensi skema tidak tersedia untuk wilayah kabupaten/kota. Silakan ubah filter Kab/Kota kembali ke 'SEMUA' untuk melihat persebaran inefisiensi tingkat provinsi.")
         else:
-            st.warning("Data inefisiensi skema tidak tersedia untuk wilayah ini.")
+            df_ews_filter = df_ews_master.copy()
+            if pilih_prov != "SEMUA":
+                df_ews_filter = df_ews_filter[df_ews_filter['NAMA_PROVINSI'] == pilih_prov]
+                
+            if not df_ews_filter.empty:
+                df_ews_filter['PENYALURAN_JUTA'] = df_ews_filter['PENYALURAN_PER_DEBITUR'] / 1e6
+                df_ews_filter['SUBSIDI_JUTA'] = df_ews_filter['SUBSIDI_PER_DEBITUR'] / 1e6
+                
+                fig_ews = px.scatter(
+                    df_ews_filter, 
+                    x='PENYALURAN_JUTA',
+                    y='SUBSIDI_JUTA',    
+                    size='TOTAL_DEBITUR', 
+                    color='NAMA_SKEMA',
+                    color_discrete_map={
+                        'MIKRO': '#10B981',         
+                        'KECIL': "#35ABE1",         
+                        'SUPER MIKRO': "#E89910",   
+                        'TKI': "#FF00C3"            
+                    },
+                    hover_name='NAMA_KABKOT', # Menampilkan nama Kab/Kot di pop-up
+                    hover_data={
+                        'NAMA_SKEMA': True, 
+                        'NAMA_KABKOT': True, # Disembunyikan karena sudah jadi judul
+                        'PENYALURAN_JUTA': False, 
+                        'SUBSIDI_JUTA': False,    
+                        'TOTAL_DEBITUR': ':,',    
+                        'PENYALURAN_PER_DEBITUR': ':,.0f', 
+                        'SUBSIDI_PER_DEBITUR': ':,.0f'     
+                    },
+                    title="Peta Inefisiensi Skema (Bubble Size = Jumlah Debitur)",
+                    labels={
+                        'PENYALURAN_JUTA': 'Rata-rata Penyaluran per Debitur',
+                        'SUBSIDI_JUTA': 'Beban Subsidi Bunga per Debitur',
+                        'NAMA_SKEMA': 'Skema Kredit',
+                        'PENYALURAN_PER_DEBITUR': 'Penyaluran Asli (Rp)',
+                        'SUBSIDI_PER_DEBITUR': 'Subsidi Asli (Rp)'
+                    }
+                )
+                
+                fig_ews.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)', 
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridcolor='#E5E7EB', ticksuffix=' Juta'),
+                    yaxis=dict(showgrid=True, gridcolor='#E5E7EB', ticksuffix=' Juta'),
+                    height=550
+                )
+                
+                avg_penyaluran = df_ews_filter['PENYALURAN_JUTA'].median()
+                avg_subsidi = df_ews_filter['SUBSIDI_JUTA'].median()
+                fig_ews.add_vline(x=avg_penyaluran, line_dash="dash", line_color="red", opacity=0.5)
+                fig_ews.add_hline(y=avg_subsidi, line_dash="dash", line_color="red", opacity=0.5)
+                
+                st.plotly_chart(fig_ews, use_container_width=True)
+                
+                teks_lokasi_ews = "Seluruh Kalimantan" if pilih_prov == "SEMUA" else f"Provinsi {pilih_prov.title()}"
+                st.caption(f"Garis putus-putus merah menandakan median (nilai tengah) efisiensi untuk {teks_lokasi_ews}. Titik yang berada di atas garis horizontal dan di kiri garis vertikal adalah skema dengan potensi inefisiensi anggaran.")
+            else:
+                st.warning("Data inefisiensi skema tidak tersedia untuk provinsi ini.")
     else:
         st.warning("File historis Subsidi KUR tidak ditemukan atau sedang diproses.")
 
