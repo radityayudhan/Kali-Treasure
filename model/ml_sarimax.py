@@ -9,21 +9,18 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# Direktori Data (Pastikan folder 'data' selevel dengan script ini saat di Streamlit)
+# Direktori Data
 folder_data = 'data'
 file_subsidi = os.path.join(folder_data, 'Subsidi_KUR_Kalimantan_Clean.csv')
 file_birate = os.path.join(folder_data, 'data_birate.csv')
 file_pdrb = os.path.join(folder_data, 'pdrb_tahunan_kalimantan.csv')
 file_realisasi = os.path.join(folder_data, 'Realisasi_KUR_Kalimantan.csv')
 
-# Rentang Waktu Global
 WAKTU_AWAL = '2016-07-01'
 WAKTU_AKHIR = '2026-12-01'
 idx_full = pd.date_range(start=WAKTU_AWAL, end=WAKTU_AKHIR, freq='MS')
 
-# ==========================================
-# 1. PERSIAPAN DATA EKSOGEN (IN-MEMORY)
-# ==========================================
+
 def siapkan_exog_birate():
     df_bi = pd.read_csv(file_birate, sep=';')
     df_bi['BI_RATE'] = df_bi['BI_RATE'].astype(str).str.replace(',', '.').astype(float)
@@ -47,35 +44,40 @@ def siapkan_exog_pdrb(filter_kabkot, list_kabkot_provinsi=None):
     ts_pdrb = ts_pdrb.reindex(idx_full).interpolate(method='time').bfill().ffill()
     return np.log(ts_pdrb)
 
-def siapkan_exog_realisasi(filter_provinsi, filter_kabkot):
+def siapkan_exog_realisasi(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     """
-    Mesin ini menarik data riil penyaluran dan melakukan forward-fill
-    sehingga tahun 2025-2026 diasumsikan stagnan mengikuti tren penurunan 2024.
+    Mesin ini menarik data riil penyaluran murni KUR (tanpa UMi), 
+    mengagregasi secara bulanan, dan melakukan forward-fill dari bulan terakhir (April 2024)
+    hingga masa depan (2025-2026) untuk stabilitas ML.
     """
     if not os.path.exists(file_realisasi):
         return pd.Series(0, index=idx_full)
         
     df_kur = pd.read_csv(file_realisasi, sep=';', low_memory=False)
     
-    # Penyelarasan Nomenklatur
+    # Hilangkan UMi dari variabel Eksogen
+    if 'NAMA_SKEMA' in df_kur.columns:
+        df_kur = df_kur[df_kur['NAMA_SKEMA'].astype(str).str.upper() != 'UMI']
+    
     if 'NAMA_WILAYAH' in df_kur.columns:
         df_kur.rename(columns={'NAMA_WILAYAH': 'NAMA_KABKOT'}, inplace=True)
         
     df_kur['NAMA_PROVINSI'] = df_kur['NAMA_PROVINSI'].astype(str).str.strip().str.upper()
     df_kur['NAMA_KABKOT'] = df_kur['NAMA_KABKOT'].astype(str).str.strip().str.upper()
-    df_kur['TAHUN'] = pd.to_numeric(df_kur['TAHUN'], errors='coerce').fillna(0)
     
-    # Filter Kewilayahan Dinamis
+    df_kur['TAHUN'] = pd.to_numeric(df_kur['TAHUN'], errors='coerce').fillna(0).astype(int)
+    df_kur['BULAN'] = pd.to_numeric(df_kur.get('BULAN', 1), errors='coerce').fillna(1).astype(int)
+    
     if filter_provinsi != 'SEMUA':
         df_kur = df_kur[df_kur['NAMA_PROVINSI'] == filter_provinsi.upper()]
     if filter_kabkot != 'SEMUA':
         df_kur = df_kur[df_kur['NAMA_KABKOT'] == filter_kabkot.upper()]
         
-    # Agregasi Total Penyaluran per Tahun
-    df_agg = df_kur.groupby('TAHUN')['SUM_JML_PENYALURAN'].sum().reset_index()
+    # Agregasi Total Penyaluran per BULAN
+    df_agg = df_kur.groupby(['TAHUN', 'BULAN'])['SUM_JML_PENYALURAN'].sum().reset_index()
     
-    # Memposisikan data di pertengahan tahun (Juli) untuk interpolasi mulus
-    df_agg['TANGGAL'] = pd.to_datetime(df_agg['TAHUN'].astype(int).astype(str) + '-07-01', errors='coerce')
+    # Memposisikan data pada tanggal 1 setiap bulannya
+    df_agg['TANGGAL'] = pd.to_datetime(df_agg['TAHUN'].astype(str) + '-' + df_agg['BULAN'].astype(str).str.zfill(2) + '-01', errors='coerce')
     df_agg = df_agg.dropna(subset=['TANGGAL'])
     
     if df_agg.empty:
@@ -83,21 +85,11 @@ def siapkan_exog_realisasi(filter_provinsi, filter_kabkot):
          
     ts_real = df_agg.set_index('TANGGAL')['SUM_JML_PENYALURAN'].sort_index()
     
-    # Reindex, Interpolasi, Forward Fill (Untuk Proyeksi 2025-2026), Backward Fill (Untuk awal 2016)
-    ts_real = ts_real.reindex(idx_full).interpolate(method='time').bfill().ffill()
+    ts_real = ts_real.reindex(idx_full).interpolate(method='linear').ffill().bfill()
     
-    # Transformasi Logaritmik (ditambah 1 agar tidak error log(0)) untuk stabilisasi model
     return np.log(ts_real + 1)
 
-# ==========================================
-# 2. MESIN SARIMAX (FUNGSI UTAMA UNTUK STREAMLIT)
-# ==========================================
 def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
-    """
-    Fungsi ini akan dipanggil oleh Streamlit setiap kali pengguna mengubah filter.
-    Mengembalikan 2 objek In-Memory: (DataFrame, Matplotlib Figure)
-    """
-    # a. Membaca & Memfilter Data Y (Subsidi)
     df_subsidi = pd.read_csv(file_subsidi, sep=';', low_memory=False)
     
     list_kabkot_prov = None
@@ -108,7 +100,6 @@ def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     if filter_kabkot != 'SEMUA':
         df_subsidi = df_subsidi[df_subsidi['NAMA_KABKOT'].str.upper() == filter_kabkot.upper()]
         
-    # b. Agregasi Y & Tail Trimming (Juli 2016 - Juli 2022)
     df_sub_agg = df_subsidi.groupby(['TAHUN', 'BULAN'])['SUM_NILAI_SUBSIDI'].sum().reset_index()
     df_sub_agg['TANGGAL'] = pd.to_datetime(df_sub_agg['TAHUN'].astype(str) + '-' + df_sub_agg['BULAN'].astype(str) + '-01')
     
@@ -116,12 +107,10 @@ def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     ts_y_clean = ts_y[(ts_y.index >= WAKTU_AWAL) & (ts_y.index < '2022-08-01')]
     ts_y_clean = ts_y_clean.resample('MS').sum().replace(0, np.nan).interpolate(method='linear').fillna(0)
     
-    # c. Data X (Matrix Eksogen Trinitas)
     ts_bi = siapkan_exog_birate()
     ts_pdrb = siapkan_exog_pdrb(filter_kabkot, list_kabkot_prov)
     ts_realisasi = siapkan_exog_realisasi(filter_provinsi, filter_kabkot)
     
-    # Memasukkan ke-3 variabel ke dalam matriks X
     df_exog = pd.DataFrame({
         'BI_RATE': ts_bi, 
         'PDRB_LOG': ts_pdrb,
@@ -133,14 +122,14 @@ def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     tanggal_forecast = pd.date_range(start=ts_y_clean.index[-1] + pd.DateOffset(months=1), end=WAKTU_AKHIR, freq='MS')
     exog_future = df_exog.loc[tanggal_forecast]
     
-    # d. Melatih 2 Skenario ML secara senyap (tanpa print di UI)
+    # Melatih 2 Skenario ML secara senyap (tanpa print di UI)
     model_opt = SARIMAX(endog=ts_y_clean, exog=exog_train, order=(1, 1, 1), seasonal_order=(1, 1, 0, 12), enforce_stationarity=False, enforce_invertibility=False)
     pred_opt = model_opt.fit(disp=False).forecast(steps=len(tanggal_forecast), exog=exog_future).clip(lower=0)
 
     model_mod = SARIMAX(endog=ts_y_clean, exog=exog_train, order=(1, 0, 0), seasonal_order=(0, 1, 0, 12), enforce_stationarity=False, enforce_invertibility=False)
     pred_mod = model_mod.fit(disp=False).forecast(steps=len(tanggal_forecast), exog=exog_future).clip(lower=0)
     
-    # e. Menyusun In-Memory DataFrame (df_final)
+    # Menyusun In-Memory DataFrame (df_final)
     df_hist = pd.DataFrame({'TANGGAL': ts_y_clean.index, 'TOTAL_TAGIHAN_SUBSIDI': ts_y_clean.values, 'TIPE': 'Historis', 'SKENARIO': 'Data Aktual (Realisasi)'})
     df_proj_opt = pd.DataFrame({'TANGGAL': tanggal_forecast, 'TOTAL_TAGIHAN_SUBSIDI': pred_opt.values, 'TIPE': 'Proyeksi', 'SKENARIO': 'Skenario Optimis (Kebutuhan Makro)'})
     df_proj_mod = pd.DataFrame({'TANGGAL': tanggal_forecast, 'TOTAL_TAGIHAN_SUBSIDI': pred_mod.values, 'TIPE': 'Proyeksi', 'SKENARIO': 'Skenario Moderat (Pagu Terkendali)'})
@@ -148,7 +137,7 @@ def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     df_final = pd.concat([df_hist, df_proj_opt, df_proj_mod], ignore_index=True)
     df_final['PERIODE'] = df_final['TANGGAL'].dt.strftime('%Y-%m')
     
-    # f. Menyusun In-Memory Plot Figure (fig)
+    # Menyusun In-Memory Plot Figure (fig)
     sns.set_theme(style="whitegrid")
     fig, ax = plt.subplots(figsize=(14, 7))
 
@@ -181,7 +170,6 @@ def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     
     return df_final, fig
 
-# Blok ini hanya jalan jika script di-run manual (bukan dipanggil dari Streamlit)
 if __name__ == "__main__":
     print("Menjalankan uji coba in-memory dengan Trinitas Exogen...")
     df_hasil, fig_hasil = jalankan_sarimax('KALIMANTAN UTARA', 'SEMUA')
