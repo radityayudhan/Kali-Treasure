@@ -152,7 +152,7 @@ def load_ews_skema_data():
 
     df_kur['NAMA_PROVINSI'] = df_kur['NAMA_PROVINSI'].astype(str).str.strip().str.upper()
     df_sub['NAMA_PROVINSI'] = df_sub['NAMA_PROVINSI'].astype(str).str.strip().str.upper()
-    
+
     df_kur['NAMA_KABKOT'] = df_kur['NAMA_KABKOT'].astype(str).str.strip().str.upper()
     df_sub['NAMA_KABKOT'] = df_sub['NAMA_KABKOT'].astype(str).str.strip().str.upper()
 
@@ -244,6 +244,9 @@ def load_graduasi_trend_data():
     df_kur = df_kur_raw[~kondisi_umi_di_kur].copy()
     df_umi_dari_kur = df_kur_raw[kondisi_umi_di_kur].copy()
 
+    if 'NAMA_SKEMA' in df_kur.columns:
+        df_kur = df_kur[~df_kur['NAMA_SKEMA'].isin(['SUPERMI', 'SUPER MIKRO'])]
+    
     df_kur['PROGRAM'] = 'KUR'
     df_umi_dari_kur['PROGRAM'] = 'UMI'
     df_umi_raw['PROGRAM'] = 'UMI'

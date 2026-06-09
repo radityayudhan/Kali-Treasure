@@ -730,7 +730,7 @@ with tab2:
         
         st.plotly_chart(fig_grad, use_container_width=True)
         
-        st.info("💡 Gunakan grafik ini untuk memantau keberhasilan *naik kelas* melalui efek tunda (*Lagging Effect*). Jika pembinaan dan transisi skala usaha berjalan sukses, lonjakan jumlah debitur pada garis hijau putus-putus (UMi) biasanya akan diikuti oleh lonjakan pada garis biru (KUR) **2 hingga 3 tahun kemudian** di wilayah yang sama. Jika garis biru tetap stagnan, hal ini mengindikasikan bahwa UMKM di daerah tersebut gagal melakukan eskalasi kapasitas dan terjebak di plafon pembiayaan ultra-mikro.")
+        st.info("💡 Gunakan grafik ini untuk memantau keberhasilan *naik kelas* melalui *Lagging Effect*. Jika pembinaan dan transisi skala usaha berjalan sukses, lonjakan jumlah debitur pada garis hijau putus-putus (UMi) biasanya akan diikuti oleh lonjakan pada garis biru (KUR) **2 hingga 3 tahun kemudian** di wilayah yang sama. Jika garis biru tetap stagnan, hal ini mengindikasikan bahwa UMKM di daerah tersebut gagal melakukan eskalasi kapasitas dan terjebak di plafon pembiayaan ultra-mikro. Data SUPER MIKRO pada KUR telah dihilangkan dari analisis ini.")
     else:
         st.warning("Data tren graduasi tidak tersedia.")
     st.markdown("---")
