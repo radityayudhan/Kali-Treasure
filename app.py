@@ -510,6 +510,7 @@ with tab1:
         df_pr_aktif = pd.DataFrame()
 
     # Grafik
+    fig_dinamis = None
     if not df_pr_aktif.empty:
         kolom_metrik = 'TOTAL_DEBITUR' if metrik_analisis == "Jumlah Debitur (Orang)" else 'TOTAL_PENYALURAN'
         format_hover = ":,.0f" if metrik_analisis == "Jumlah Debitur (Orang)" else "Rp :,.0f"
@@ -560,6 +561,7 @@ with tab1:
                 fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
             else:
                 st.warning("Dimensi Latar Belakang Pendidikan saat ini hanya mendukung metrik 'Jumlah Debitur (Orang)'.")
+                fig_dinamis = None
             
         elif dimensi_analisis == "Pendidikan Ibu Rumah Tangga (Perempuan Menikah)":
             if metrik_analisis == "Jumlah Debitur (Orang)":
@@ -583,7 +585,8 @@ with tab1:
                 fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
             else:
                 st.warning("Analisis irisan pendidikan ini hanya mendukung perhitungan 'Jumlah Debitur (Orang)'.")
-
+                fig_dinamis = None
+                
         if fig_dinamis is not None:
             fig_dinamis.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
