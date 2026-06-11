@@ -462,7 +462,7 @@ with tab1:
             st.plotly_chart(fig_edu, use_container_width=True)
     
     st.markdown("---")
-    st.markdown("**👩‍👧‍👦 Profil Marital Status Perempuan**")
+    st.markdown("**👩‍👧‍👦 Profil Demografi Perempuan**")
     st.info("Gunakan panel di bawah ini untuk melihat karakteristik debitur perempuan secara dinamis berdasarkan berbagai dimensi dan metrik.")
     
     if pilih_prov == "SEMUA":
@@ -484,7 +484,7 @@ with tab1:
     with col_ctrl2:
         dimensi_analisis = st.selectbox(
             "2. Lihat Berdasarkan (Dimensi):",
-            ["Status Perkawinan", "Sektor Usaha", "Latar Belakang Pendidikan"]
+            ["Status Perkawinan", "Sektor Usaha", "Latar Belakang Pendidikan (Semua Perempuan)", "Pendidikan Ibu Rumah Tangga (Perempuan Menikah)"]
         )
         
     with col_ctrl3:
@@ -541,10 +541,9 @@ with tab1:
                 )
                 fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
 
-        elif dimensi_analisis == "Latar Belakang Pendidikan":
-            tot_pr = df_pr_aktif[kolom_metrik].sum()
-            
+        elif dimensi_analisis == "Latar Belakang Pendidikan (Semua Perempuan)":
             if metrik_analisis == "Jumlah Debitur (Orang)":
+                tot_pr = df_pr_aktif['TOTAL_DEBITUR'].sum()
                 sd_pr = df_pr_aktif['PENDIDIKAN_SD_SMP'].sum()
                 ti_pr = tot_pr - sd_pr
                 
@@ -555,13 +554,35 @@ with tab1:
                 
                 fig_dinamis = px.pie(
                     df_chart, values='NILAI', names='KATEGORI', hole=0.45,
-                    title=f"Distribusi {dimensi_analisis} Perempuan<br><sup>{teks_program}</sup>",
+                    title=f"Pendidikan Keseluruhan Debitur Perempuan<br><sup>{teks_program}</sup>",
                     color_discrete_sequence=['#F59E0B', '#10B981']
                 )
                 fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
             else:
-                st.warning("Dimensi Latar Belakang Pendidikan saat ini hanya mendukung metrik 'Jumlah Debitur (Orang)'. Silakan ubah metrik di panel kontrol.")
-                fig_dinamis = None
+                st.warning("Dimensi Latar Belakang Pendidikan saat ini hanya mendukung metrik 'Jumlah Debitur (Orang)'.")
+            
+        elif dimensi_analisis == "Pendidikan Ibu Rumah Tangga (Perempuan Menikah)":
+            if metrik_analisis == "Jumlah Debitur (Orang)":
+                #  Hanya Perempuan KAWIN
+                df_pr_kawin = df_pr_aktif[df_pr_aktif['NAMA_MARITAL_STS'] == 'KAWIN']
+                
+                tot_kawin = df_pr_kawin['TOTAL_DEBITUR'].sum()
+                sd_kawin = df_pr_kawin['PENDIDIKAN_SD_SMP'].sum()
+                ti_kawin = tot_kawin - sd_kawin
+                
+                df_chart = pd.DataFrame({
+                    'KATEGORI': ['Pendidikan Dasar (SD/SMP)', 'Menengah / Tinggi'],
+                    'NILAI': [sd_kawin, ti_kawin]
+                })
+                
+                fig_dinamis = px.pie(
+                    df_chart, values='NILAI', names='KATEGORI', hole=0.45,
+                    title=f"Pendidikan Ibu Rumah Tangga (Perempuan Menikah)<br><sup>{teks_program}</sup>",
+                    color_discrete_sequence=['#4ADE80', '#FBBF24']
+                )
+                fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
+            else:
+                st.warning("Analisis irisan pendidikan ini hanya mendukung perhitungan 'Jumlah Debitur (Orang)'.")
 
         if fig_dinamis is not None:
             fig_dinamis.update_layout(
@@ -569,6 +590,9 @@ with tab1:
                 margin=dict(t=60, b=10, l=10, r=10)
             )
             st.plotly_chart(fig_dinamis, use_container_width=True)
+    
+    else:
+        st.warning(f"Data debitur perempuan tidak tersedia untuk {teks_program} di wilayah ini.")
 
 # TAB 2: TREN & KINERJA SEKTORAL
 with tab2:
