@@ -463,6 +463,7 @@ with tab1:
     
     st.markdown("---")
     st.markdown("**👩‍👧‍👦 Profil Marital Status Perempuan**")
+    st.info("Gunakan panel di bawah ini untuk melihat karakteristik debitur perempuan secara dinamis berdasarkan berbagai dimensi dan metrik.")
     
     if pilih_prov == "SEMUA":
         teks_lokasi = "Seluruh Provinsi di Kalimantan"
@@ -471,12 +472,26 @@ with tab1:
     else:
         teks_lokasi = f"{pilih_kabkot.title()}, Provinsi {pilih_prov.title()}"
 
-    pilihan_program_gedsi = st.radio(
-        "Pilih Program:",
-        ["SEMUA (Gabungan KUR & UMi)", "Khusus KUR", "Khusus UMi"],
-        horizontal=True,
-        key="radio_tab1_gedsi"
-    )
+    col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+    
+    with col_ctrl1:
+        pilihan_program_gedsi = st.radio(
+            "1. Pilih Program:",
+            ["SEMUA (Gabungan)", "Khusus KUR", "Khusus UMi"],
+            key="radio_tab1_gedsi"
+        )
+        
+    with col_ctrl2:
+        dimensi_analisis = st.selectbox(
+            "2. Lihat Berdasarkan (Dimensi):",
+            ["Status Perkawinan", "Sektor Usaha", "Latar Belakang Pendidikan"]
+        )
+        
+    with col_ctrl3:
+        metrik_analisis = st.selectbox(
+            "3. Ukur Berdasarkan (Metrik):",
+            ["Jumlah Debitur (Orang)", "Nominal Penyaluran (Rupiah)"]
+        )
 
     df_gedsi_filtered = df_map.copy()
     teks_program = "Gabungan KUR & UMi"
@@ -488,87 +503,72 @@ with tab1:
         df_gedsi_filtered = df_gedsi_filtered[df_gedsi_filtered['PROGRAM'] == 'UMI']
         teks_program = "Program UMi"
 
-    col_chart1, col_chart2 = st.columns(2)
-    
-    with col_chart1:
-        if 'NAMA_MARITAL_STS' in df_gedsi_filtered.columns and 'NAMA_JNS_KELAMIN' in df_gedsi_filtered.columns:
-            if not df_gedsi_filtered.empty:
-                df_pr_chart = df_gedsi_filtered[df_gedsi_filtered['NAMA_JNS_KELAMIN'] == 'PEREMPUAN']
-                
-                if not df_pr_chart.empty:
-                    df_marital_pr = df_pr_chart.groupby('NAMA_MARITAL_STS')['TOTAL_DEBITUR'].sum().reset_index()
-                    
-                    fig_gedsi = px.pie(
-                        df_marital_pr, 
-                        values='TOTAL_DEBITUR', 
-                        names='NAMA_MARITAL_STS', 
-                        hole=0.45,
-                        # Sub-judul otomatis berubah sesuai radio button
-                        title=f"Status Perkawinan Perempuan<br><sup>{teks_program}</sup>",
-                        color_discrete_sequence=['#EC4899', '#8B5CF6', '#F472B6', '#C4B5FD'] 
-                    )
-                    
-                    fig_gedsi.update_traces(
-                        textposition='inside', 
-                        textinfo='percent+label',
-                        showlegend=False,
-                        hovertemplate="<b>Status: %{label}</b><br>Jumlah: %{value:,.0f} Orang<br>Porsi: %{percent}<extra></extra>"
-                    )
-                    
-                    fig_gedsi.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(t=50, b=10, l=10, r=10) # Margin atas ditambah sedikit untuk sub-judul
-                    )
-                    st.plotly_chart(fig_gedsi, use_container_width=True)
-                else:
-                    st.info(f"Tidak ada data debitur perempuan pada {teks_program} di wilayah ini.")
-            else:
-                st.warning(f"Data kosong untuk kombinasi {teks_program} dan wilayah {teks_lokasi}.")
-        else:
-            st.warning("Data demografi status perkawinan tidak tersedia.")
+    # hanya data Perempuan
+    if 'NAMA_JNS_KELAMIN' in df_gedsi_filtered.columns:
+        df_pr_aktif = df_gedsi_filtered[df_gedsi_filtered['NAMA_JNS_KELAMIN'] == 'PEREMPUAN']
+    else:
+        df_pr_aktif = pd.DataFrame()
 
-    with col_chart2:
-        if 'NAMA_MARITAL_STS' in df_gedsi_filtered.columns and 'NAMA_JNS_KELAMIN' in df_gedsi_filtered.columns and 'PENDIDIKAN_SD_SMP' in df_gedsi_filtered.columns:
-            if not df_gedsi_filtered.empty:
-                # Menggunakan dataframe df_gedsi_filtered yang sudah tersaring oleh radio button
-                df_ibu = df_gedsi_filtered[(df_gedsi_filtered['NAMA_JNS_KELAMIN'] == 'PEREMPUAN') & (df_gedsi_filtered['NAMA_MARITAL_STS'] == 'KAWIN')]
+    # Grafik
+    if not df_pr_aktif.empty:
+        kolom_metrik = 'TOTAL_DEBITUR' if metrik_analisis == "Jumlah Debitur (Orang)" else 'TOTAL_PENYALURAN'
+        format_hover = ":,.0f" if metrik_analisis == "Jumlah Debitur (Orang)" else "Rp :,.0f"
+        
+        if dimensi_analisis in ["Status Perkawinan", "Sektor Usaha"]:
+            kolom_dimensi = 'NAMA_MARITAL_STS' if dimensi_analisis == "Status Perkawinan" else 'SEKTOR_USAHA'
+            
+            df_chart = df_pr_aktif.groupby(kolom_dimensi)[kolom_metrik].sum().reset_index()
+            df_chart = df_chart.sort_values(by=kolom_metrik, ascending=False)
+            
+            # Jika Sektor Usaha (kategori banyak) menggunakan Bar Chart. Jika Status Perkawinan menggunakan Donut Chart.
+            if dimensi_analisis == "Sektor Usaha":
+                top_sektor = df_chart.head(5)[kolom_dimensi].tolist()
+                df_chart['KATEGORI_FINAL'] = np.where(df_chart[kolom_dimensi].isin(top_sektor), df_chart[kolom_dimensi], 'Sektor Lainnya')
+                df_chart = df_chart.groupby('KATEGORI_FINAL')[kolom_metrik].sum().reset_index().sort_values(by=kolom_metrik, ascending=True)
                 
-                if not df_ibu.empty:
-                    tot_ibu = df_ibu['TOTAL_DEBITUR'].sum()
-                    sd_ibu = df_ibu['PENDIDIKAN_SD_SMP'].sum()
-                    ti_ibu = tot_ibu - sd_ibu 
-                    
-                    df_chart_ibu = pd.DataFrame({
-                        'Kategori Pendidikan': ['Pendidikan Dasar (SD/SMP)', 'Menengah / Tinggi'],
-                        'Jumlah Debitur': [sd_ibu, ti_ibu]
-                    })
-                    
-                    fig_ibu = px.pie(
-                        df_chart_ibu, 
-                        values='Jumlah Debitur', 
-                        names='Kategori Pendidikan', 
-                        hole=0.45,
-                        # Sub-judul otomatis berubah sesuai radio button
-                        title=f"Pendidikan Ibu Rumah Tangga (Perempuan Menikah)<br><sup>{teks_program}</sup>",
-                        color_discrete_sequence=['#F59E0B', '#10B981'] 
-                    )
-                    
-                    fig_ibu.update_traces(
-                        textposition='inside', 
-                        textinfo='percent+label',
-                        showlegend=False,
-                        hovertemplate="<b>%{label}</b><br>Jumlah: %{value:,.0f} Orang<br>Porsi: %{percent}<extra></extra>"
-                    )
-                    
-                    fig_ibu.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(t=50, b=10, l=10, r=10)
-                    )
-                    st.plotly_chart(fig_ibu, use_container_width=True)
-                else:
-                    st.info(f"Tidak ada data Ibu Rumah Tangga (Perempuan Kawin) pada {teks_program}.")
-        else:
-            st.warning("Data demografi pendidikan tidak lengkap untuk analisis ini.")
+                fig_dinamis = px.bar(
+                    df_chart, x=kolom_metrik, y='KATEGORI_FINAL', orientation='h',
+                    title=f"Distribusi {dimensi_analisis} Perempuan<br><sup>{teks_program}</sup>",
+                    color_discrete_sequence=['#EC4899']
+                )
+                fig_dinamis.update_layout(xaxis_title=metrik_analisis, yaxis_title="")
+                
+            else:
+                fig_dinamis = px.pie(
+                    df_chart, values=kolom_metrik, names=kolom_dimensi, hole=0.45,
+                    title=f"Distribusi {dimensi_analisis} Perempuan<br><sup>{teks_program}</sup>",
+                    color_discrete_sequence=['#EC4899', '#8B5CF6', '#F472B6', '#C4B5FD']
+                )
+                fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
+
+        elif dimensi_analisis == "Latar Belakang Pendidikan":
+            tot_pr = df_pr_aktif[kolom_metrik].sum()
+            
+            if metrik_analisis == "Jumlah Debitur (Orang)":
+                sd_pr = df_pr_aktif['PENDIDIKAN_SD_SMP'].sum()
+                ti_pr = tot_pr - sd_pr
+                
+                df_chart = pd.DataFrame({
+                    'KATEGORI': ['Pendidikan Dasar (SD/SMP)', 'Menengah / Tinggi'],
+                    'NILAI': [sd_pr, ti_pr]
+                })
+                
+                fig_dinamis = px.pie(
+                    df_chart, values='NILAI', names='KATEGORI', hole=0.45,
+                    title=f"Distribusi {dimensi_analisis} Perempuan<br><sup>{teks_program}</sup>",
+                    color_discrete_sequence=['#F59E0B', '#10B981']
+                )
+                fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
+            else:
+                st.warning("Dimensi Latar Belakang Pendidikan saat ini hanya mendukung metrik 'Jumlah Debitur (Orang)'. Silakan ubah metrik di panel kontrol.")
+                fig_dinamis = None
+
+        if fig_dinamis is not None:
+            fig_dinamis.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                margin=dict(t=60, b=10, l=10, r=10)
+            )
+            st.plotly_chart(fig_dinamis, use_container_width=True)
 
 # TAB 2: TREN & KINERJA SEKTORAL
 with tab2:
