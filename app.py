@@ -25,7 +25,7 @@ st.set_page_config(
 st.markdown("""
     <style>
     .main-header { font-size: 42px !important; font-weight: 900; color: #38BDF8; margin-bottom: 0px; letter-spacing: 1px;}
-    .sub-header { font-size: 20px !important; font-weight: 500; color: #FFFFFF; margin-bottom: 30px; }
+    .sub-header { font-size: 20px !important; font-weight: 500; color: var(--text-color); opacity: 0.8; margin-bottom: 30px; }
     .stTabs [data-baseweb="tab-list"] { gap: 20px; }
     .stTabs [data-baseweb="tab"] { padding-top: 10px; padding-bottom: 10px; }
     div[data-testid="metric-container"] { margin-bottom: 10px; }
@@ -34,15 +34,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def format_rupiah_dinamis(angka):
-    if pd.isna(angka) or angka == 0: return "Rp 0"
+    if pd.isna(angka) or angka == 0: return "Rp0"
     if angka >= 1e12:
         triliun = angka / 1e12
         teks = f"{triliun:,.2f}"
-        return "Rp " + teks.replace(',', 'X').replace('.', ',').replace('X', '.') + " T"
+        return "Rp" + teks.replace(',', 'X').replace('.', ',').replace('X', '.') + " T"
     else:
         miliar = angka / 1e9
         teks = f"{miliar:,.1f}"
-        return "Rp " + teks.replace(',', 'X').replace('.', ',').replace('X', '.') + " M"
+        return "Rp" + teks.replace(',', 'X').replace('.', ',').replace('X', '.') + " M"
 
 def format_orang_indo(angka):
     if pd.isna(angka) or angka == 0: return "0"
@@ -766,9 +766,8 @@ with tab2:
     st.markdown("---")
 
 with tab3:
-    st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("#### 🚨 Anomali Inefisiensi Skema Pembiayaan (2018-2021)")
-    st.info("Analisis ini memetakan riwayat efisiensi tiap Skema Kredit. Titik anomali (Kuadran Kiri Atas) adalah indikator: **Skema tertentu beban subsidi negara sangat besar per debitur, namun nominal pembiayaan yang disalurkan sangat kecil.**\nData merupakan irisan antara data Realisasi KUR dan Subsisi KUR sepanjang tahun 2018-2021")
+    st.info("Analisis ini memetakan riwayat efisiensi tiap Skema Kredit. Jika terdapat titik anomali di sebelah Kuadran Kiri Atas adalah titik bahwa **Skema tertentu beban subsidi negara sangat besar per debitur, namun nominal pembiayaan yang disalurkan sangat kecil.**\nData merupakan irisan antara data Realisasi KUR dan Subsisi KUR sepanjang tahun 2018-2021")
     
     # Memanggil dataset khusus EWS yang sudah dikoreksi
     df_ews_master = load_ews_skema_data()
@@ -983,7 +982,7 @@ with tab4:
         st.plotly_chart(fig_rf, use_container_width=True)
         
         st.markdown("""
-        <div style='background-color: #1F2937; padding: 15px; border-radius: 10px; border-left: 5px solid #8B5CF6; margin-bottom: 15px;'>
+        <div style='background-color: var(--secondary-background-color); color: var(--text-color); padding: 15px; border-radius: 10px; border-left: 5px solid #8B5CF6; margin-bottom: 15px;'>
             <b>Interpretasi Grafik:</b> Bar chart di atas menunjukkan seberapa kuat intervensi pada suatu variabel berdampak pada total plafon kredit.
         </div>
         """, unsafe_allow_html=True)
@@ -1125,7 +1124,7 @@ with tab5:
         # Prediktif Simulasi Kebijakan (Random Forest)
         st.markdown("### 📇 Simulasi Kebijakan (Dampak Inklusi Sosial)")
         st.markdown("""
-        <div style='background-color: #1F2937; padding: 15px; border-radius: 10px; border-left: 5px solid #8B5CF6; margin-bottom: 15px;'>
+        <div style='background-color: var(--secondary-background-color); color: var(--text-color); padding: 15px; border-radius: 10px; border-left: 5px solid #8B5CF6; margin-bottom: 15px;'>
             Simulasikan Skenario: Jika berhasil mendorong peningkatan indikator inklusi demografi di bawah ini, berapa estimasi tambahan uang yang akan beredar di masyarakat berdasarkan model Machine Learning (Random Forest)?
         </div>
         """, unsafe_allow_html=True)
