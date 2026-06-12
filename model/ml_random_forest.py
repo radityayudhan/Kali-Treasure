@@ -110,8 +110,8 @@ if __name__ == "__main__":
                 r2_train = rf_test.score(X_train, y_train)
                 r2_test = rf_test.score(X_test, y_test)
                 
-                print(f"R-Squared (Latihan) : {r2_train*100:.1f}%")
-                print(f"R-Squared (Ujian)   : {r2_test*100:.1f}%")
+                print(f"R-Squared Training : {r2_train*100:.1f}%")
+                print(f"R-Squared Testing  : {r2_test*100:.1f}%")
                 print(f"Delta (Selisih)     : {(r2_train - r2_test)*100:.1f}%")
             else:
                  print("Data tidak mencukupi untuk training.")
