@@ -49,7 +49,7 @@ def format_orang_indo(angka):
     return f"{int(angka):,}".replace(',', '.')
 
 
-# 3. SIDEBAR
+# SIDEBAR
 df_master = load_and_process_raw_data()
 
 with st.sidebar:
@@ -75,7 +75,7 @@ with st.sidebar:
     st.info("💡 **Tips:** Gunakan filter di atas untuk review kinerja kewilayahan secara spesifik.")
     st.caption("Tim Bu Novi | Kanwil DJPb Prov. Kaltara 2026")
 
-# 4. AREA UTAMA
+# AREA DASHBOARD
 st.markdown('<p class="main-header">KALI-TREASURE</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Kalimantan Treasury Radar for SME Financing</p>', unsafe_allow_html=True)
 
@@ -512,7 +512,7 @@ with tab1:
     else:
         df_pr_aktif = pd.DataFrame()
 
-    # Grafik
+    # Grafik Dinamis sesuai Req User
     fig_dinamis = None
     if not df_pr_aktif.empty:
         kolom_metrik = 'TOTAL_DEBITUR' if metrik_analisis == "Jumlah Debitur (Orang)" else 'TOTAL_PENYALURAN'
@@ -993,7 +993,7 @@ with tab5:
     st.info("Simulator kebijakan ini memproyeksikan **Dampak Inklusi Sosial (GEDSI)** apabila eksekutif mengambil keputusan untuk menaikkan atau menurunkan alokasi pagu penyaluran pada sektor ekonomi tertentu. Basis perhitungan menggunakan *conversion rate* historis.")
     
     if not df_master.empty:
-        # 1. Menentukan Baseline Dinamis (Program -> Tahun)
+        # Menentukan Baseline (Program -> Tahun)
         col_prog, col_thn = st.columns(2)
         
         with col_prog:
@@ -1028,7 +1028,6 @@ with tab5:
                 df_base = df_base[df_base['NAMA_KABKOT'] == pilih_kabkot]
 
             if not df_base.empty:
-                # 2. Pemrosesan Sektor & Rasio Historis
                 df_sektor = df_base.groupby('SEKTOR_USAHA').agg(
                     TOTAL_PENYALURAN=('TOTAL_PENYALURAN', 'sum'),
                     TOTAL_DEBITUR=('TOTAL_DEBITUR', 'sum'),

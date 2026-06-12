@@ -38,15 +38,12 @@ if 'NAMA_KABKOT' not in kolom_irisan:
 else:
     print("Kolom 'NAMA_KABKOT' berhasil masuk dalam irisan data.")
 
-# ==========================================
-# 3. PENAMBAHAN IDENTITAS PROGRAM & PENGGABUNGAN
-# ==========================================
-print("\n[3] Menyuntikkan identitas dan menggabungkan data...")
+print("\n[3] Menambahkan program dan menggabungkan data...")
 
 df_kur_bersih = df_kur[kolom_irisan].copy()
 df_umi_bersih = df_umi[kolom_irisan].copy()
 
-# Menyuntikkan identitas program
+# Menambahkan program
 df_kur_bersih['PROGRAM'] = 'KUR'
 df_umi_bersih['PROGRAM'] = 'UMI'
 
@@ -54,9 +51,8 @@ df_umi_bersih['PROGRAM'] = 'UMI'
 df_gabungan = pd.concat([df_kur_bersih, df_umi_bersih], ignore_index=True)
 print(f"Penggabungan berhasil! Total baris gabungan: {len(df_gabungan):,}")
 
-# ==========================================
-# 4. AGREGASI SPASIAL (EDA TAB 1)
-# ==========================================
+
+# AGREGASI SPASIAL (EDA TAB 1)
 print("\n[4] Melakukan Agregasi Spasial Regional Kalimantan...")
 
 # Cleansing nama wilayah agar seragam saat di-grouping (menghindari duplikasi karena spasi)

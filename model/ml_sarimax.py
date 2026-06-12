@@ -46,16 +46,15 @@ def siapkan_exog_pdrb(filter_kabkot, list_kabkot_provinsi=None):
 
 def siapkan_exog_realisasi(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     """
-    Mesin ini menarik data riil penyaluran murni KUR (tanpa UMi), 
-    mengagregasi secara bulanan, dan melakukan forward-fill dari bulan terakhir (April 2024)
-    hingga masa depan (2025-2026) untuk stabilitas ML.
+    Data riil penyaluran murni KUR (tanpa UMi), 
+    Diagregasi secara bulanan, dan forward-fill dari bulan terakhir (April 2024)
+    hingga 2025-2026 untuk stabilitas ML.
     """
     if not os.path.exists(file_realisasi):
         return pd.Series(0, index=idx_full)
         
     df_kur = pd.read_csv(file_realisasi, sep=';', low_memory=False)
     
-    # Hilangkan UMi dari variabel Eksogen
     if 'NAMA_SKEMA' in df_kur.columns:
         df_kur = df_kur[df_kur['NAMA_SKEMA'].astype(str).str.upper() != 'UMI']
     
@@ -73,10 +72,8 @@ def siapkan_exog_realisasi(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     if filter_kabkot != 'SEMUA':
         df_kur = df_kur[df_kur['NAMA_KABKOT'] == filter_kabkot.upper()]
         
-    # Agregasi Total Penyaluran per BULAN
     df_agg = df_kur.groupby(['TAHUN', 'BULAN'])['SUM_JML_PENYALURAN'].sum().reset_index()
     
-    # Memposisikan data pada tanggal 1 setiap bulannya
     df_agg['TANGGAL'] = pd.to_datetime(df_agg['TAHUN'].astype(str) + '-' + df_agg['BULAN'].astype(str).str.zfill(2) + '-01', errors='coerce')
     df_agg = df_agg.dropna(subset=['TANGGAL'])
     
@@ -122,14 +119,13 @@ def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     tanggal_forecast = pd.date_range(start=ts_y_clean.index[-1] + pd.DateOffset(months=1), end=WAKTU_AKHIR, freq='MS')
     exog_future = df_exog.loc[tanggal_forecast]
     
-    # Melatih 2 Skenario ML secara senyap (tanpa print di UI)
     model_opt = SARIMAX(endog=ts_y_clean, exog=exog_train, order=(1, 1, 1), seasonal_order=(1, 1, 0, 12), enforce_stationarity=False, enforce_invertibility=False)
     pred_opt = model_opt.fit(disp=False).forecast(steps=len(tanggal_forecast), exog=exog_future).clip(lower=0)
 
     model_mod = SARIMAX(endog=ts_y_clean, exog=exog_train, order=(1, 0, 0), seasonal_order=(0, 1, 0, 12), enforce_stationarity=False, enforce_invertibility=False)
     pred_mod = model_mod.fit(disp=False).forecast(steps=len(tanggal_forecast), exog=exog_future).clip(lower=0)
     
-    # Menyusun In-Memory DataFrame (df_final)
+    # Menyusun In-Memory DataFrame
     df_hist = pd.DataFrame({'TANGGAL': ts_y_clean.index, 'TOTAL_TAGIHAN_SUBSIDI': ts_y_clean.values, 'TIPE': 'Historis', 'SKENARIO': 'Data Aktual (Realisasi)'})
     df_proj_opt = pd.DataFrame({'TANGGAL': tanggal_forecast, 'TOTAL_TAGIHAN_SUBSIDI': pred_opt.values, 'TIPE': 'Proyeksi', 'SKENARIO': 'Skenario Optimis (Kebutuhan Makro)'})
     df_proj_mod = pd.DataFrame({'TANGGAL': tanggal_forecast, 'TOTAL_TAGIHAN_SUBSIDI': pred_mod.values, 'TIPE': 'Proyeksi', 'SKENARIO': 'Skenario Moderat (Pagu Terkendali)'})
@@ -137,7 +133,7 @@ def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     df_final = pd.concat([df_hist, df_proj_opt, df_proj_mod], ignore_index=True)
     df_final['PERIODE'] = df_final['TANGGAL'].dt.strftime('%Y-%m')
     
-    # Menyusun In-Memory Plot Figure (fig)
+    # Menyusun In-Memory Plot Figure
     sns.set_theme(style="whitegrid")
     fig, ax = plt.subplots(figsize=(14, 7))
 
@@ -170,9 +166,71 @@ def jalankan_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     
     return df_final, fig
 
+def evaluasi_model_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
+    df_subsidi = pd.read_csv(file_subsidi, sep=';', low_memory=False)
+    
+    list_kabkot_prov = None
+    if filter_provinsi != 'SEMUA':
+        list_kabkot_prov = df_subsidi[df_subsidi['NAMA_PROVINSI'].str.upper() == filter_provinsi.upper()]['NAMA_KABKOT'].str.upper().unique()
+        df_subsidi = df_subsidi[df_subsidi['NAMA_PROVINSI'].str.upper() == filter_provinsi.upper()]
+        
+    if filter_kabkot != 'SEMUA':
+        df_subsidi = df_subsidi[df_subsidi['NAMA_KABKOT'].str.upper() == filter_kabkot.upper()]
+        
+    df_sub_agg = df_subsidi.groupby(['TAHUN', 'BULAN'])['SUM_NILAI_SUBSIDI'].sum().reset_index()
+    df_sub_agg['TANGGAL'] = pd.to_datetime(df_sub_agg['TAHUN'].astype(str) + '-' + df_sub_agg['BULAN'].astype(str) + '-01')
+    
+    ts_y_clean = df_sub_agg.set_index('TANGGAL')['SUM_NILAI_SUBSIDI'].sort_index()
+    ts_y_clean = ts_y_clean[(ts_y_clean.index >= WAKTU_AWAL) & (ts_y_clean.index < '2022-08-01')].resample('MS').sum().replace(0, np.nan).interpolate(method='linear').fillna(0)
+    
+    ts_bi = siapkan_exog_birate()
+    ts_pdrb = siapkan_exog_pdrb(filter_kabkot, list_kabkot_prov)
+    ts_realisasi = siapkan_exog_realisasi(filter_provinsi, filter_kabkot)
+    df_exog = pd.DataFrame({'BI_RATE': ts_bi, 'PDRB_LOG': ts_pdrb, 'REALISASI_LOG': ts_realisasi})
+    
+    # Pemisahan data Testing
+    n_test = 12
+    if len(ts_y_clean) <= n_test:
+        print("❌ Data terlalu sedikit untuk dievaluasi.")
+        return
+
+    train_y = ts_y_clean.iloc[:-n_test]
+    test_y = ts_y_clean.iloc[-n_test:]
+    
+    train_exog = df_exog.loc[train_y.index]
+    test_exog = df_exog.loc[test_y.index]
+
+    model_opt = SARIMAX(endog=train_y, exog=train_exog, order=(1, 1, 1), seasonal_order=(1, 1, 0, 12), enforce_stationarity=False, enforce_invertibility=False)
+    pred_opt = model_opt.fit(disp=False).forecast(steps=len(test_y), exog=test_exog).clip(lower=0)
+
+    model_mod = SARIMAX(endog=train_y, exog=train_exog, order=(1, 0, 0), seasonal_order=(0, 1, 0, 12), enforce_stationarity=False, enforce_invertibility=False)
+    pred_mod = model_mod.fit(disp=False).forecast(steps=len(test_y), exog=test_exog).clip(lower=0)
+
+    def hitung_metrik(aktual, prediksi):
+        rmse = np.sqrt(((aktual - prediksi)**2).mean())
+        mape = np.mean(np.abs((aktual - prediksi) / np.maximum(aktual, 1))) * 100
+        akurasi = max(0, 100 - mape)
+        return rmse, mape, akurasi
+
+    rmse_opt, mape_opt, akurasi_opt = hitung_metrik(test_y, pred_opt)
+    rmse_mod, mape_mod, akurasi_mod = hitung_metrik(test_y, pred_mod)
+
+    print("VALIDASI SARIMAX + EKSOGEN")
+    print(f"Wilayah       : {filter_provinsi} - {filter_kabkot}")
+    print(f"Data Latih    : {train_y.index[0].date()} s.d {train_y.index[-1].date()} ({len(train_y)} bulan)")
+    print(f"Data Uji      : {test_y.index[0].date()} s.d {test_y.index[-1].date()} ({len(test_y)} bulan)")
+    print("-" * 60)
+    
+    print("[SKENARIO OPTIMIS - Order (1,1,1)]")
+    print(f"   RMSE (Error Avg) : Rp {rmse_opt/1e9:,.2f} Miliar")
+    print(f"   MAPE (Meleset %) : {mape_opt:.2f}%")
+    print(f"   ✅ AKURASI MODEL : {akurasi_opt:.2f}%\n")
+    
+    print("[SKENARIO MODERAT - Order (1,0,0) Tanpa Tren Bulanan]")
+    print(f"   RMSE (Error Avg) : Rp {rmse_mod/1e9:,.2f} Miliar")
+    print(f"   MAPE (Meleset %) : {mape_mod:.2f}%")
+    print(f"   ✅ AKURASI MODEL : {akurasi_mod:.2f}%")
+    print("="*60 + "\n")
+
 if __name__ == "__main__":
-    print("Menjalankan uji coba in-memory dengan Trinitas Exogen...")
-    df_hasil, fig_hasil = jalankan_sarimax('KALIMANTAN UTARA', 'SEMUA')
-    print("Berhasil menghasilkan DataFrame dengan shape:", df_hasil.shape)
-    print("Tipe objek grafik:", type(fig_hasil))
-    # plt.show() # Jika ingin melihat grafiknya saat uji coba manual
+    evaluasi_model_sarimax(filter_provinsi='SEMUA', filter_kabkot='SEMUA')

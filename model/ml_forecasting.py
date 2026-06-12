@@ -14,9 +14,6 @@ folder_data = 'data'
 file_mentah_bersih = os.path.join(folder_data, 'Subsidi_KUR_Kalimantan_Clean.csv')
 file_agregat_geo = os.path.join(folder_data, 'agregat_forecast_geo.csv')
 
-# ==========================================
-# 1. PERSIAPAN DATA BERBASIS GEOGRAFIS
-# ==========================================
 def siapkan_data_geografis():
     df_subsidi = pd.read_csv(file_mentah_bersih, sep=';', low_memory=False)
     
@@ -34,21 +31,19 @@ def siapkan_data_geografis():
     
     df_geo = df_geo[(df_geo['TAHUN'] >= 2015) & (df_geo['TAHUN'] <= 2026)]
     
-    # Menyimpan file agregat geografi agar Streamlit tidak perlu memproses ulang data mentah yang berat
+    # Menyimpan file agregat geografi
     if not os.path.exists(folder_data):
         os.makedirs(folder_data)
     df_geo.to_csv(file_agregat_geo, index=False, sep=';')
     return df_geo
 
-# ==========================================
-# 2. FUNGSI ML "ON-THE-FLY" (UNTUK STREAMLIT)
-# ==========================================
+
 def jalankan_prediksi_wilayah(df_geo, filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
     """
     Fungsi ini dipanggil oleh Streamlit.
     Mengembalikan 2 objek In-Memory: (DataFrame Data Tabel, Matplotlib Figure)
     """
-    # a. Terapkan Filter Geografis
+    
     df_filtered = df_geo.copy()
     if filter_provinsi != 'SEMUA':
         df_filtered = df_filtered[df_filtered['NAMA_PROVINSI'].str.upper() == filter_provinsi.upper()]
@@ -59,18 +54,17 @@ def jalankan_prediksi_wilayah(df_geo, filter_provinsi='SEMUA', filter_kabkot='SE
     if len(df_filtered) == 0:
         return None, None
         
-    # b. Agregasi Berdasarkan Waktu Saja (Setelah difilter)
     df_agg = df_filtered.groupby(['TAHUN', 'BULAN'])['TOTAL_TAGIHAN'].sum().reset_index()
     df_agg['PERIODE'] = df_agg['TAHUN'].astype(int).astype(str) + '-' + df_agg['BULAN'].astype(int).astype(str).str.zfill(2)
     df_agg['TANGGAL'] = pd.to_datetime(df_agg['PERIODE'] + '-01')
     
     ts_data = df_agg.set_index('TANGGAL')['TOTAL_TAGIHAN'].sort_index()
 
-    # c. Pemotongan Waktu Ekstrem (Mutlak sebelum Agustus 2022 akibat Administrative Lag)
+    # Data sebelum Agustus 2022/Data subsidi hanya hingga tanggal tersebut
     ts_data_clean = ts_data[ts_data.index < '2022-08-01']
     ts_data_clean = ts_data_clean.resample('MS').sum().replace(0, np.nan).interpolate(method='linear').fillna(0)
 
-    # d. Pelatihan Multi-Skenario secara In-Memory
+    # Skenario Optimis-Moderat
     model_optimis = ExponentialSmoothing(
         ts_data_clean, trend='add', seasonal='add', seasonal_periods=12, damped_trend=True, initialization_method="estimated"
     ).fit(optimized=True)
@@ -79,12 +73,12 @@ def jalankan_prediksi_wilayah(df_geo, filter_provinsi='SEMUA', filter_kabkot='SE
         ts_data_clean, trend='add', seasonal='add', seasonal_periods=12, damped_trend=True, initialization_method="estimated"
     ).fit(optimized=True, damping_trend=0.85)
 
-    # e. Proyeksi 53 Bulan ke depan (Hingga Akhir 2026)
+    # Proyeksi 53 Bulan ke depan (Hingga Akhir 2026)
     pred_optimis = model_optimis.forecast(53).clip(lower=0)
     pred_moderat = model_moderat.forecast(53).clip(lower=0)
     tanggal_forecast = pd.date_range(start=ts_data_clean.index[-1] + pd.DateOffset(months=1), periods=53, freq='MS')
 
-    # f. Menyusun In-Memory DataFrame untuk Tabel Streamlit
+    # In-Memory DataFrame untuk Tabel pada Streamlit
     df_hist = pd.DataFrame({'TANGGAL': ts_data_clean.index, 'TOTAL_TAGIHAN_SUBSIDI': ts_data_clean.values, 'TIPE': 'Historis', 'SKENARIO': 'Data Aktual (Realisasi)'})
     df_proj_opt = pd.DataFrame({'TANGGAL': tanggal_forecast, 'TOTAL_TAGIHAN_SUBSIDI': pred_optimis.values, 'TIPE': 'Proyeksi', 'SKENARIO': 'Skenario Optimis (Tanpa Batas Pagu)'})
     df_proj_mod = pd.DataFrame({'TANGGAL': tanggal_forecast, 'TOTAL_TAGIHAN_SUBSIDI': pred_moderat.values, 'TIPE': 'Proyeksi', 'SKENARIO': 'Skenario Moderat (Pagu Terkendali)'})
@@ -92,7 +86,7 @@ def jalankan_prediksi_wilayah(df_geo, filter_provinsi='SEMUA', filter_kabkot='SE
     df_final = pd.concat([df_hist, df_proj_opt, df_proj_mod], ignore_index=True)
     df_final['PERIODE'] = df_final['TANGGAL'].dt.strftime('%Y-%m')
 
-    # g. Visualisasi Dinamis (In-Memory Figure)
+    # Visualisasi
     sns.set_theme(style="whitegrid")
     fig, ax = plt.subplots(figsize=(14, 7))
 
@@ -123,13 +117,73 @@ def jalankan_prediksi_wilayah(df_geo, filter_provinsi='SEMUA', filter_kabkot='SE
     
     plt.tight_layout()
     
-    # Mengembalikan objek ke aplikasi pemanggil (Streamlit)
     return df_final, fig
 
+def evaluasi_model_holtwinters(df_geo, filter_provinsi='SEMUA', filter_kabkot='SEMUA'):
+    df_filtered = df_geo.copy()
+    if filter_provinsi != 'SEMUA':
+        df_filtered = df_filtered[df_filtered['NAMA_PROVINSI'].str.upper() == filter_provinsi.upper()]
+    if filter_kabkot != 'SEMUA':
+        df_filtered = df_filtered[df_filtered['NAMA_KABKOT'].str.upper() == filter_kabkot.upper()]
+        
+    if len(df_filtered) == 0:
+        print("❌ Data kosong.")
+        return
 
-# ==========================================
-# BLOK UJI COBA MANUAL (Tidak akan jalan di Streamlit)
-# ==========================================
+    df_agg = df_filtered.groupby(['TAHUN', 'BULAN'])['TOTAL_TAGIHAN'].sum().reset_index()
+    df_agg['TANGGAL'] = pd.to_datetime(df_agg['TAHUN'].astype(int).astype(str) + '-' + df_agg['BULAN'].astype(int).astype(str).str.zfill(2) + '-01')
+    ts_data_clean = df_agg.set_index('TANGGAL')['TOTAL_TAGIHAN'].sort_index()
+    ts_data_clean = ts_data_clean[ts_data_clean.index < '2022-08-01'].resample('MS').sum().replace(0, np.nan).interpolate(method='linear').fillna(0)
+
+    n_test = 12
+    if len(ts_data_clean) <= n_test:
+        print("❌ Data terlalu sedikit untuk dievaluasi.")
+        return
+
+    train = ts_data_clean.iloc[:-n_test]
+    test = ts_data_clean.iloc[-n_test:]
+
+    model_opt = ExponentialSmoothing(
+        train, trend='add', seasonal='add', seasonal_periods=12, damped_trend=True, initialization_method="estimated"
+    ).fit(optimized=True)
+
+    model_mod = ExponentialSmoothing(
+        train, trend='add', seasonal='add', seasonal_periods=12, damped_trend=True, initialization_method="estimated"
+    ).fit(optimized=True, damping_trend=0.85)
+
+    pred_opt = model_opt.forecast(n_test).clip(lower=0)
+    pred_mod = model_mod.forecast(n_test).clip(lower=0)
+
+    # Variabel Hasil Uji
+    def hitung_metrik(aktual, prediksi):
+        rmse = np.sqrt(((aktual - prediksi)**2).mean())
+        mae = np.abs(aktual - prediksi).mean()
+        mape = np.mean(np.abs((aktual - prediksi) / np.maximum(aktual, 1))) * 100 
+        akurasi = max(0, 100 - mape)
+        return rmse, mae, mape, akurasi
+
+    rmse_opt, mae_opt, mape_opt, akurasi_opt = hitung_metrik(test, pred_opt)
+    rmse_mod, mae_mod, mape_mod, akurasi_mod = hitung_metrik(test, pred_mod)
+
+    print("🕵️ VALIDASI HOLT-WINTERS")
+    print(f"Wilayah       : {filter_provinsi} - {filter_kabkot}")
+    print(f"Data Latih    : {train.index[0].date()} s.d {train.index[-1].date()} ({len(train)} bulan)")
+    print(f"Data Uji      : {test.index[0].date()} s.d {test.index[-1].date()} ({len(test)} bulan)")
+    print("-" * 60)
+    
+    print("[SKENARIO OPTIMIS - Tanpa Batas Pagu]")
+    print(f"   RMSE (Error Avg) : Rp {rmse_opt/1e9:,.2f} Miliar")
+    print(f"   MAE  (Selisih Avg) : Rp {mae_opt/1e9:,.2f} Miliar")
+    print(f"   MAPE (Meleset %) : {mape_opt:.2f}%")
+    print(f"   ✅ AKURASI MODEL : {akurasi_opt:.2f}%\n")
+    
+    print("[SKENARIO MODERAT - Damping Trend 0.85]")
+    print(f"   RMSE (Error Avg) : Rp {rmse_mod/1e9:,.2f} Miliar")
+    print(f"   MAE  (Selisih Avg) : Rp {mae_mod/1e9:,.2f} Miliar")
+    print(f"   MAPE (Meleset %) : {mape_mod:.2f}%")
+    print(f"   ✅ AKURASI MODEL : {akurasi_mod:.2f}%")
+
+# Pengujian
 if __name__ == "__main__":
     if not os.path.exists(file_agregat_geo):
         print("Menyiapkan file cache geografi...")
@@ -137,12 +191,4 @@ if __name__ == "__main__":
     else:
         df_master = pd.read_csv(file_agregat_geo, sep=';', low_memory=False)
 
-    print("Menjalankan uji coba In-Memory Holt-Winters...")
-    df_hasil, fig_hasil = jalankan_prediksi_wilayah(df_master, filter_provinsi='KALIMANTAN UTARA', filter_kabkot='SEMUA')
-    
-    if df_hasil is not None:
-        print("✅ Berhasil! DataFrame terbentuk dengan jumlah baris:", df_hasil.shape[0])
-        print("✅ Berhasil! Objek grafik bertipe:", type(fig_hasil))
-        # plt.show() # Uncomment jika ingin melihat grafik saat uji coba di terminal
-    else:
-        print("❌ Gagal, data tidak ditemukan.")
+    evaluasi_model_holtwinters(df_master, filter_provinsi='SEMUA', filter_kabkot='SEMUA')
