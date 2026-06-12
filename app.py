@@ -17,7 +17,7 @@ from utils.data_loader import load_and_filter_geojson, load_and_process_raw_data
 
 st.set_page_config(
     page_title="KALI-TREASURE | DJPb",
-    page_icon="🧭",
+    page_icon="🧭", # page_icon dipertahankan sebagai emoji karena tidak support Material Icon
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -54,12 +54,12 @@ df_master = load_and_process_raw_data()
 
 with st.sidebar:
     st.image("image/intress.png", width=120)
-    st.markdown("### 🎛️ Panel Filter")
+    st.markdown("### :material/tune: Panel Filter")
     st.markdown("---")
     
     if not df_master.empty:
         daftar_prov = ["SEMUA"] + sorted(df_master['NAMA_PROVINSI'].unique().tolist())
-        pilih_prov = st.selectbox("📍 Filter Provinsi:", daftar_prov)
+        pilih_prov = st.selectbox(":material/location_on: Filter Provinsi:", daftar_prov)
         
         if pilih_prov == "SEMUA":
             daftar_kabkot = ["SEMUA"]
@@ -67,12 +67,12 @@ with st.sidebar:
             kabkot_tersedia = df_master[df_master['NAMA_PROVINSI'] == pilih_prov]['NAMA_KABKOT'].unique().tolist()
             daftar_kabkot = ["SEMUA"] + sorted(kabkot_tersedia)
 
-        pilih_kabkot = st.selectbox("🏢 Filter Kab/Kota:", daftar_kabkot)
+        pilih_kabkot = st.selectbox(":material/location_city: Filter Kab/Kota:", daftar_kabkot)
     else:
         pilih_prov, pilih_kabkot = "SEMUA", "SEMUA"
     
     st.markdown("---")
-    st.info("💡 **Tips:** Gunakan filter di atas untuk review kinerja kewilayahan secara spesifik.")
+    st.info(":material/lightbulb: **Tips:** Gunakan filter di atas untuk review kinerja kewilayahan secara spesifik.")
     st.caption("Tim Bu Novi | Kanwil DJPb Prov. Kaltara 2026")
 
 # AREA DASHBOARD
@@ -80,11 +80,11 @@ st.markdown('<p class="main-header">KALI-TREASURE</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Kalimantan Treasury Radar for SME Financing</p>', unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🗺️ Peta Realisasi & Inklusi", 
-    "📈 Tren & Proporsi Sektor Usaha", 
-    "🤖 Anomali Inefisiensi Subsidi & Forecasting", 
-    "🧩 Clustering & Feature Importance",
-    "⚖️ Simulasi Kebijakan"
+    ":material/map: Peta Realisasi & Inklusi", 
+    ":material/trending_up: Tren & Proporsi Sektor Usaha", 
+    ":material/troubleshoot: Anomali Inefisiensi & Forecasting", 
+    ":material/extension: Clustering & Feature Importance",
+    ":material/balance: Simulasi Kebijakan"
 ])
 
 # TAB 1
@@ -98,12 +98,12 @@ with tab1:
         min_tahun = int(df_master['TAHUN'].min())
         max_tahun = int(df_master['TAHUN'].max())
         tahun_pilih = st.slider(
-            "📅 Rentang Waktu (Tahun):", 
+            ":material/calendar_month: Rentang Waktu (Tahun):", 
             min_value=min_tahun, max_value=max_tahun, 
             value=(min_tahun, max_tahun)
         )
     if tahun_pilih[0] > 2024 or tahun_pilih[1] > 2024:
-        st.warning("⚠️ Catatan: Data Realisasi KUR hanya tersedia hingga April 2024. Data tahun 2025 dan 2026 hanya mencakup Data Realisasi UMi.")
+        st.warning(":material/warning: Catatan: Data Realisasi KUR hanya tersedia hingga April 2024. Data tahun 2025 dan 2026 hanya mencakup Data Realisasi UMi.")
     
     st.markdown("---")
     
@@ -112,7 +112,7 @@ with tab1:
     
     with col_map:
         lensa_peta = st.selectbox(
-            "🗺️ Tampilkan Peta Berdasarkan (Metrik):",
+            ":material/map: Tampilkan Peta Berdasarkan (Metrik):",
             [
                 "💰 Nominal Penyaluran", 
                 "🚨 Rasio Debitur per Penduduk Usia Produktif",
@@ -122,7 +122,7 @@ with tab1:
         )
         
         filter_program_peta = st.radio(
-            "🎯 Filter Program (Peta):",
+            ":material/ads_click: Filter Program (Peta):",
             ["Gabungan", "Khusus KUR", "Khusus UMi"],
             horizontal=True
         )
@@ -216,7 +216,7 @@ with tab1:
                 
                 tooltip = folium.GeoJsonTooltip(
                     fields=['WADMKK', 'TOOLTIP_TOTAL', 'TOOLTIP_DEBITUR', 'TOOLTIP_POPULASI', 'TOOLTIP_PENETRASI', 'TOOLTIP_PCT_PR', 'TOOLTIP_PCT_SD'],
-                    aliases=['Wilayah:', f'Penyaluran ({teks_program_peta}):', f'Debitur ({teks_program_peta}):', '👨‍👩‍👧‍👦 Penduduk Usia Produktif:', f'🎯 Rasio Debitur ({teks_program_peta}):', '👩 Porsi Perempuan:', '🎓 Porsi Pend. Dasar:'],
+                    aliases=['Wilayah:', f'Penyaluran ({teks_program_peta}):', f'Debitur ({teks_program_peta}):', 'Populasi Usia Produktif:', f'Rasio Debitur ({teks_program_peta}):', 'Porsi Perempuan:', 'Porsi Pend. Dasar:'],
                     style=("background-color: white; color: #333333; font-family: arial; font-size: 11px; padding: 8px; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);")
                 )
                 choro.geojson.add_child(tooltip)
@@ -224,10 +224,10 @@ with tab1:
                 
                 st_folium(m, width="100%", height=450, returned_objects=[])
                 
-                if lensa_peta == "🚨 Rasio Debitur per Penduduk Usia Produktif":
-                    st.caption("🔴 **Merah**: Rasio debitur terhadap penduduk usia produktif tergolong rendah (perlu dorongan ekspansi). 🟢 **Hijau**: Rasio sasaran inklusi sudah optimal.")
+                if lensa_peta == ":material/emergency: Rasio Debitur per Penduduk Usia Produktif":
+                    st.caption(":material/cancel: **Merah**: Rasio debitur terhadap penduduk usia produktif tergolong rendah (perlu dorongan ekspansi). :material/check_circle: **Hijau**: Rasio sasaran inklusi sudah optimal.")
             else:
-                st.warning("Tidak ada data untuk kombinasi filter ini, atau file GeoJSON tidak tersedia.")
+                st.warning(":material/warning: Tidak ada data untuk kombinasi filter ini, atau file GeoJSON tidak tersedia.")
     
     with col_metric:
         if not df_master.empty and not df_map.empty:
@@ -238,7 +238,7 @@ with tab1:
             df_kur = df_map[df_map['PROGRAM'] == 'KUR']
             df_umi = df_map[df_map['PROGRAM'] == 'UMI']
             
-            st.markdown(f"##### 📊 Realisasi Agregat ({tahun_pilih[0]}-{tahun_pilih[1]})")
+            st.markdown(f"##### :material/bar_chart: Realisasi Agregat ({tahun_pilih[0]}-{tahun_pilih[1]})")
             
             # KPI Penyaluran
             st.metric(label="Total Penyaluran", value=format_rupiah_dinamis(total_penyaluran))
@@ -263,7 +263,7 @@ with tab1:
 
     # BARIS 2: TOP 5 KABUPATEN/KOTA (Penyaluran & Debitur)
     st.markdown("---")
-    st.markdown(f"##### 🏆 Top 5 Kabupaten/Kota ({tahun_pilih[0]}-{tahun_pilih[1]})")
+    st.markdown(f"##### :material/emoji_events: Top 5 Kabupaten/Kota ({tahun_pilih[0]}-{tahun_pilih[1]})")
 
     df_top5 = df_master[(df_master['TAHUN'] >= tahun_pilih[0]) & (df_master['TAHUN'] <= tahun_pilih[1])]
     
@@ -318,11 +318,11 @@ with tab1:
             )
             st.plotly_chart(fig_t2, use_container_width=True)
     else:
-        st.warning("Data kewilayahan tidak tersedia untuk rentang tahun ini.")
+        st.warning(":material/warning: Data kewilayahan tidak tersedia untuk rentang tahun ini.")
         
     # BARIS 3: INKLUSI (GEDSI)
     st.markdown("<hr style='border:1px solid #E5E7EB; margin-top:0px; margin-bottom:15px'>", unsafe_allow_html=True)
-    st.markdown("##### 🎯 Perspektif Inklusi (GEDSI)")
+    st.markdown("##### :material/diversity_3: Perspektif Inklusi (GEDSI)")
     
     if not df_master.empty and not df_map.empty:
         tot_all = df_map['TOTAL_DEBITUR'].sum()
@@ -361,7 +361,7 @@ with tab1:
         col_gedsi_gender, col_gedsi_edu = st.columns(2)
 
         with col_gedsi_gender:
-            st.markdown("**👩 Pemberdayaan Perempuan (Gender Equality)**")
+            st.markdown("**:material/woman: Pemberdayaan Perempuan (Gender Equality)**")
             
             st.caption("Penyaluran TOTAL (KUR & UMi)")
             st.progress(int(pct_pr_all))
@@ -384,7 +384,7 @@ with tab1:
             cg_u2.metric("Laki-laki", f"{pct_lk_umi:.1f}%", f"{format_orang_indo(lk_umi)} Org", delta_color="off")
 
         with col_gedsi_edu:
-            st.markdown("**🎓 Inklusi Latar Belakang Pendidikan**")
+            st.markdown("**:material/school: Inklusi Latar Belakang Pendidikan**")
             
             st.caption("Penyaluran TOTAL (KUR & UMi)")
             st.progress(int(pct_sd_all))
@@ -440,7 +440,7 @@ with tab1:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=""),
             xaxis=dict(dtick=1, title="Tahun"),
             yaxis=dict(title="Porsi Perempuan (%)", range=[0, 105]),
-            hovermode="x unified" # Memunculkan tooltip komparasi dalam 1 garis vertikal
+            hovermode="x unified"
         )
         
         with col_chart_gender:
@@ -461,15 +461,15 @@ with tab1:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=""),
             xaxis=dict(dtick=1, title="Tahun"),
             yaxis=dict(title="Porsi Debitur (SD/SMP) (%)", range=[0, 105]),
-            hovermode="x unified" # Memunculkan tooltip komparasi dalam 1 garis vertikal
+            hovermode="x unified"
         )
 
         with col_chart_edu:
             st.plotly_chart(fig_edu, use_container_width=True)
     
     st.markdown("---")
-    st.markdown("**👩‍👧‍👦 Profil Demografi Perempuan**")
-    st.info("Gunakan panel di bawah ini untuk melihat karakteristik debitur perempuan secara dinamis berdasarkan berbagai dimensi dan metrik.")
+    st.markdown("**:material/group: Profil Demografi Perempuan**")
+    st.info(":material/lightbulb: Gunakan panel di bawah ini untuk melihat karakteristik debitur perempuan secara dinamis berdasarkan berbagai dimensi dan metrik.")
     
     if pilih_prov == "SEMUA":
         teks_lokasi = "Seluruh Provinsi di Kalimantan"
@@ -527,7 +527,6 @@ with tab1:
             df_chart = df_pr_aktif.groupby(kolom_dimensi)[kolom_metrik].sum().reset_index()
             df_chart = df_chart.sort_values(by=kolom_metrik, ascending=False)
             
-            # Jika Sektor Usaha (kategori banyak) menggunakan Bar Chart. Jika Status Perkawinan menggunakan Donut Chart.
             if dimensi_analisis == "Sektor Usaha":
                 top_sektor = df_chart.head(5)[kolom_dimensi].tolist()
                 df_chart['KATEGORI_FINAL'] = np.where(df_chart[kolom_dimensi].isin(top_sektor), df_chart[kolom_dimensi], 'Sektor Lainnya')
@@ -566,12 +565,11 @@ with tab1:
                 )
                 fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
             else:
-                st.warning("Dimensi Latar Belakang Pendidikan saat ini hanya mendukung metrik 'Jumlah Debitur (Orang)'.")
+                st.warning(":material/warning: Dimensi Latar Belakang Pendidikan saat ini hanya mendukung metrik 'Jumlah Debitur (Orang)'.")
                 fig_dinamis = None
             
         elif dimensi_analisis == "Pendidikan Ibu Rumah Tangga (Perempuan Menikah)":
             if metrik_analisis == "Jumlah Debitur (Orang)":
-                #  Hanya Perempuan KAWIN
                 df_pr_kawin = df_pr_aktif[df_pr_aktif['NAMA_MARITAL_STS'] == 'KAWIN']
                 
                 tot_kawin = df_pr_kawin['TOTAL_DEBITUR'].sum()
@@ -590,7 +588,7 @@ with tab1:
                 )
                 fig_dinamis.update_traces(textposition='inside', textinfo='percent+label', showlegend=False)
             else:
-                st.warning("Analisis irisan pendidikan ini hanya mendukung perhitungan 'Jumlah Debitur (Orang)'.")
+                st.warning(":material/warning: Analisis irisan pendidikan ini hanya mendukung perhitungan 'Jumlah Debitur (Orang)'.")
                 fig_dinamis = None
 
         if fig_dinamis is not None:
@@ -601,7 +599,7 @@ with tab1:
             st.plotly_chart(fig_dinamis, use_container_width=True)
     
     else:
-        st.warning(f"Data debitur perempuan tidak tersedia untuk {teks_program} di wilayah ini.")
+        st.warning(f":material/warning: Data debitur perempuan tidak tersedia untuk {teks_program} di wilayah ini.")
 
 # TAB 2: TREN & KINERJA SEKTORAL
 with tab2:
@@ -612,7 +610,7 @@ with tab2:
     
     if not df_master.empty:
         pilihan_program_tab2 = st.radio(
-            "🎯 Filter Program:",
+            ":material/ads_click: Filter Program:",
             ["SEMUA (Gabungan KUR & UMi)", "Khusus KUR", "Khusus UMi"],
             horizontal=True,
             key="radio_tab2_sektoral"
@@ -634,26 +632,22 @@ with tab2:
 
         st.markdown("---")
         
-        # Validasi data kosong
         if df_tab2.empty:
-            st.warning(f"Data tidak tersedia untuk kombinasi wilayah dan program {pilihan_program_tab2}.")
+            st.warning(f":material/warning: Data tidak tersedia untuk kombinasi wilayah dan program {pilihan_program_tab2}.")
         else:
             col_tren, col_donut = st.columns([2, 1.5])
             
             with col_tren:
-                st.markdown("**📈 Tren Penyaluran (Top 5 Sektor)**")
+                st.markdown("**:material/trending_up: Tren Penyaluran (Top 5 Sektor)**")
                 
-                # Agregasi data sektoral
                 df_sektor = df_tab2.groupby(['TAHUN', 'SEKTOR_USAHA'])['TOTAL_PENYALURAN'].sum().reset_index()
                 
-                # Cari 5 sektor terbesar, sisanya jadikan 'LAINNYA'
                 top_5_sektor = df_sektor.groupby('SEKTOR_USAHA')['TOTAL_PENYALURAN'].sum().nlargest(5).index
                 df_sektor['SEKTOR_FINAL'] = np.where(df_sektor['SEKTOR_USAHA'].isin(top_5_sektor), df_sektor['SEKTOR_USAHA'], 'LAINNYA')
                 df_tren_final = df_sektor.groupby(['TAHUN', 'SEKTOR_FINAL'])['TOTAL_PENYALURAN'].sum().reset_index()
 
                 max_penyaluran = df_tren_final['TOTAL_PENYALURAN'].max()
                 
-                #format trilian / miliar sumbu y
                 if max_penyaluran >= 1e12:
                     df_tren_final['PENYALURAN_PLOT'] = df_tren_final['TOTAL_PENYALURAN'] / 1e12
                     satuan_y = " T"
@@ -680,12 +674,10 @@ with tab2:
                 st.plotly_chart(fig_tren, use_container_width=True)
 
             with col_donut:
-                st.markdown("**🍩 Komposisi Sektor Usaha (Akumulasi)**")
+                st.markdown("**:material/pie_chart: Komposisi Sektor Usaha (Akumulasi)**")
                 
-                # Agregasi total per sektor untuk Donut Chart
                 df_pie = df_tab2.groupby('SEKTOR_USAHA')['TOTAL_PENYALURAN'].sum().reset_index()
                 
-                # Threshold 3% untuk menggabungkan sektor kecil
                 threshold = df_pie['TOTAL_PENYALURAN'].sum() * 0.03
                 df_pie['SEKTOR_FINAL'] = np.where(df_pie['TOTAL_PENYALURAN'] < threshold, 'LAINNYA', df_pie['SEKTOR_USAHA'])
                 df_pie_final = df_pie.groupby('SEKTOR_FINAL')['TOTAL_PENYALURAN'].sum().reset_index()
@@ -709,10 +701,10 @@ with tab2:
                 )
                 st.plotly_chart(fig_donut, use_container_width=True)
     else:
-        st.warning("Data belum tersedia. Pastikan file data berhasil dimuat.")
+        st.warning(":material/warning: Data belum tersedia. Pastikan file data berhasil dimuat.")
 
     st.markdown("---")
-    st.markdown("### 🎓 Analisis Transisi Pembiayaan UMKM (UMi ke KUR)")
+    st.markdown("### :material/school: Analisis Transisi Pembiayaan UMKM (UMi ke KUR)")
     
     df_graduasi_raw = load_graduasi_trend_data()
     
@@ -737,7 +729,7 @@ with tab2:
             go.Scatter(x=df_graduasi['TAHUN'], y=df_graduasi['DEBITUR_UMI'], 
                         name="Debitur UMi", 
                         mode='lines+markers',
-                        line=dict(color='#10B981', width=4, dash='dot')), # Garis putus-putus hijau
+                        line=dict(color='#10B981', width=4, dash='dot')),
             secondary_y=False,
         )
         
@@ -747,7 +739,7 @@ with tab2:
                         name="Debitur KUR", 
                         mode='lines+markers',
                         fill='tozeroy', fillcolor='rgba(56, 189, 248, 0.1)',
-                        line=dict(color='#0ea5e9', width=3)), # Garis biru solid
+                        line=dict(color='#0ea5e9', width=3)),
             secondary_y=True,
         )
         
@@ -766,24 +758,23 @@ with tab2:
         
         st.plotly_chart(fig_grad, use_container_width=True)
         
-        st.info("💡 Gunakan grafik ini untuk memantau keberhasilan *naik kelas* melalui *Lagging Effect*. Jika pembinaan dan transisi skala usaha berjalan sukses, lonjakan jumlah debitur pada garis hijau putus-putus (UMi) biasanya akan diikuti oleh lonjakan pada garis biru (KUR) **2 hingga 3 tahun kemudian** di wilayah yang sama. Jika garis biru tetap stagnan, hal ini mengindikasikan bahwa UMKM di daerah tersebut gagal melakukan eskalasi kapasitas dan terjebak di plafon pembiayaan ultra-mikro. Data SUPER MIKRO pada KUR telah dihilangkan dari analisis ini.")
+        st.info(":material/lightbulb: Gunakan grafik ini untuk memantau keberhasilan *naik kelas* melalui *Lagging Effect*. Jika pembinaan dan transisi skala usaha berjalan sukses, lonjakan jumlah debitur pada garis hijau putus-putus (UMi) biasanya akan diikuti oleh lonjakan pada garis biru (KUR) **2 hingga 3 tahun kemudian** di wilayah yang sama. Jika garis biru tetap stagnan, hal ini mengindikasikan bahwa UMKM di daerah tersebut gagal melakukan eskalasi kapasitas dan terjebak di plafon pembiayaan ultra-mikro. Data SUPER MIKRO pada KUR telah dihilangkan dari analisis ini.")
     else:
-        st.warning("Data tren graduasi tidak tersedia.")
+        st.warning(":material/warning: Data tren graduasi tidak tersedia.")
     st.markdown("---")
 
 with tab3:
     with st.expander("**Info Tab**", expanded=False):
         st.write("Menampilkan anomali data terkait inefisiensi skema kredit, daya ungkit subsidi bunga, serta proyeksi beban subsidi menggunakan dua pendekatan model.")
         
-    st.markdown("#### 🚨 Anomali Inefisiensi Skema Pembiayaan (2018-2021)")
-    st.info("Analisis ini memetakan riwayat efisiensi tiap Skema Kredit. Jika terdapat titik anomali di sebelah Kuadran Kiri Atas adalah titik bahwa **Skema tertentu beban subsidi negara sangat besar per debitur, namun nominal pembiayaan yang disalurkan sangat kecil.**\nData merupakan irisan antara data Realisasi KUR dan Subsisi KUR sepanjang tahun 2018-2021")
+    st.markdown("#### :material/warning: Anomali Inefisiensi Skema Pembiayaan (2018-2021)")
+    st.info(":material/lightbulb: Analisis ini memetakan riwayat efisiensi tiap Skema Kredit. Jika terdapat titik anomali di sebelah Kuadran Kiri Atas adalah titik bahwa **Skema tertentu beban subsidi negara sangat besar per debitur, namun nominal pembiayaan yang disalurkan sangat kecil.**\nData merupakan irisan antara data Realisasi KUR dan Subsisi KUR sepanjang tahun 2018-2021")
     
-    # Memanggil dataset khusus EWS yang sudah dikoreksi
     df_ews_master = load_ews_skema_data()
     
     if not df_ews_master.empty:
         if pilih_kabkot != "SEMUA":
-            st.warning("Grafik inefisiensi skema tidak tersedia untuk wilayah kabupaten/kota. Silakan ubah filter Kab/Kota kembali ke 'SEMUA' untuk melihat persebaran inefisiensi tingkat provinsi.")
+            st.warning(":material/warning: Grafik inefisiensi skema tidak tersedia untuk wilayah kabupaten/kota. Silakan ubah filter Kab/Kota kembali ke 'SEMUA' untuk melihat persebaran inefisiensi tingkat provinsi.")
         else:
             df_ews_filter = df_ews_master.copy()
             if pilih_prov != "SEMUA":
@@ -805,10 +796,10 @@ with tab3:
                         'SUPER MIKRO': "#E89910",   
                         'TKI': "#FF00C3"            
                     },
-                    hover_name='NAMA_KABKOT', # Menampilkan nama Kab/Kot di pop-up
+                    hover_name='NAMA_KABKOT', 
                     hover_data={
                         'NAMA_SKEMA': True, 
-                        'NAMA_KABKOT': True, # Disembunyikan karena sudah jadi judul
+                        'NAMA_KABKOT': True, 
                         'PENYALURAN_JUTA': False, 
                         'SUBSIDI_JUTA': False,    
                         'TOTAL_DEBITUR': ':,',    
@@ -843,13 +834,12 @@ with tab3:
                 teks_lokasi_ews = "Seluruh Kalimantan" if pilih_prov == "SEMUA" else f"Provinsi {pilih_prov.title()}"
                 st.caption(f"Garis putus-putus merah menandakan median (nilai tengah) efisiensi untuk {teks_lokasi_ews}. Titik yang berada di atas garis horizontal dan di kiri garis vertikal adalah skema dengan potensi inefisiensi anggaran.")
             else:
-                st.warning("Data inefisiensi skema tidak tersedia untuk provinsi ini.")
+                st.warning(":material/warning: Data inefisiensi skema tidak tersedia untuk provinsi ini.")
     else:
-        st.warning("File historis Subsidi KUR tidak ditemukan atau sedang diproses.")
+        st.warning(":material/warning: File historis Subsidi KUR tidak ditemukan atau sedang diproses.")
 
-    # Leverage Subsidi terhadap Kredit KUR
     st.markdown("---")
-    st.markdown("### 📈 Tren Tahunan Daya Ungkit (Leverage) Subsidi Bunga terhadap Kredit")
+    st.markdown("### :material/trending_up: Tren Tahunan Daya Ungkit (Leverage) Subsidi Bunga terhadap Kredit")
     
     df_trend_raw = load_leverage_trend_data()
     
@@ -912,29 +902,28 @@ with tab3:
         
         st.plotly_chart(fig_trend, use_container_width=True)
         
-        st.info("💡 **Analisis Efisiensi Subsidi:** Menggunakan agregasi tahun penuh untuk menghilangkan anomali *lag* penyaluran subsidi. Dengan filter wilayah, dapat ditinjau apakah serapan subsidi di suatu kabupaten/kota memberikan dampak ungkit yang sepadan dibandingkan dengan rata-rata provinsi.")
+        st.info(":material/lightbulb: **Analisis Efisiensi Subsidi:** Menggunakan agregasi tahun penuh untuk menghilangkan anomali *lag* penyaluran subsidi. Dengan filter wilayah, dapat ditinjau apakah serapan subsidi di suatu kabupaten/kota memberikan dampak ungkit yang sepadan dibandingkan dengan rata-rata provinsi.")
     else:
-        st.warning("Data tren daya ungkit subsidi tidak tersedia untuk rentang atau wilayah terpilih.")
+        st.warning(":material/warning: Data tren daya ungkit subsidi tidak tersedia untuk rentang atau wilayah terpilih.")
 
-    #Proyeksi ML    
     st.markdown("---")
-    st.markdown("#### 🔮 Proyeksi Beban Subsidi")
-    st.info("**Holt-Winters** murni menggunakan data historis penyaluran untuk memproyeksikan beban subsidi di masa depan, sedangkan **SARIMAX** menggunakan pendekatan statistik yang lebih kompleks dengan menambahkan variabel eksogen yaitu BI Rate, PDRB, dan Realisasi KUR.")
+    st.markdown("#### :material/insights: Proyeksi Beban Subsidi")
+    st.info(":material/lightbulb: **Holt-Winters** murni menggunakan data historis penyaluran untuk memproyeksikan beban subsidi di masa depan, sedangkan **SARIMAX** menggunakan pendekatan statistik yang lebih kompleks dengan menambahkan variabel eksogen yaitu BI Rate, PDRB, dan Realisasi KUR.")
     
     col_model1, col_model2 = st.columns([3, 1])
     with col_model1:
         pilihan_model = st.selectbox(
-            "🧠 Pilih Mesin Prediksi (Algoritma):", 
+            ":material/psychology: Pilih Mesin Prediksi (Algoritma):", 
             ["-- Pilih Algoritma --", "Holt-Winters (Exponential Smoothing)", "SARIMAX (Machine Learning dengan Eksogen)"]
         )
         
     with col_model2:
-        st.markdown("<br>", unsafe_allow_html=True) # Spasi agar tombol sejajar dengan selectbox
+        st.markdown("<br>", unsafe_allow_html=True)
         tombol_jalankan = st.button("Jalankan Model", use_container_width=True)
     
     if tombol_jalankan:
         if pilihan_model == "-- Pilih Algoritma --":
-            st.warning("⚠️ Silakan pilih algoritma prediksi pada menu drop-down di atas terlebih dahulu.")
+            st.warning(":material/warning: Silakan pilih algoritma prediksi pada menu drop-down di atas terlebih dahulu.")
         else:
             with st.spinner(f"Mesin {pilihan_model} sedang melakukan kalkulasi..."):
                 try:
@@ -947,26 +936,26 @@ with tab3:
                     if df_hasil is not None and fig_hasil is not None:
                         st.pyplot(fig_hasil, clear_figure=True)
                         
-                        st.markdown("##### 🚨 Tabel Rincian Skenario Proyeksi Subsidi")
+                        st.markdown("##### :material/table: Tabel Rincian Skenario Proyeksi Subsidi")
                         st.dataframe(df_hasil, use_container_width=True, hide_index=True)
                     else:
-                        st.warning("⚠️ Data historis tidak mencukupi atau kosong untuk kombinasi wilayah ini.")
+                        st.warning(":material/warning: Data historis tidak mencukupi atau kosong untuk kombinasi wilayah ini.")
                         
                 except Exception as e:
-                    st.error(f"Terjadi kesalahan sistematik pada mesin prediksi: {e}")
+                    st.error(f":material/error: Terjadi kesalahan sistematik pada mesin prediksi: {e}")
 
 with tab4:
     with st.expander("**Info Tab**", expanded=False):
-        st.write('Memuat hasil klasterisasi sektor usaha potensial per kabupaten/kota, serta analisis faktor pendorong plafon pembiayaan berdasarkan tingkat intervensinya.')
+        st.write('Menyajikan hasil klasterisasi yang dapat digunakan untuk mengidentifikasi sektor usaha potensial di setiap provinsi serta clustering berdasarkan indikator GEDSI, serta analisis faktor pendorong plafon pembiayaan berdasarkan tingkat intervensinya.')
 
-    st.markdown("#### 🧩 Clustering & Feature Importance untuk Profiling Wilayah")
-    st.info("Analisis ini mengkombinasikan metode *Unsupervised Learning* (K-Means) dan *Supervised Learning* (Random Forest) untuk mengelompokkan wilayah dan menilai fitur yang paling penting dalam pengambilan keputusan.")
+    st.markdown("#### :material/extension: Clustering & Feature Importance untuk Profiling Wilayah")
+    st.info(":material/lightbulb: Analisis ini mengkombinasikan metode *Unsupervised Learning* (K-Means) dan *Supervised Learning* (Random Forest) untuk mengelompokkan wilayah dan menilai fitur yang paling penting dalam pengambilan keputusan.")
 
     if not df_master.empty:
         st.markdown("**K-Means Clustering**")
         
         mode_lensa = st.radio(
-            "🔎 Pilih Fitur Analisis (Parameter Matriks K-Means):", 
+            ":material/search: Pilih Fitur Analisis (Parameter Matriks K-Means):", 
             ["Indikator dan Sektor Penyaluran", "Sosial/GEDSI"], 
             horizontal=True,
             help="Indikator dan Sektor Penyaluran berfokus pada rasio debitur, penyaluran, dan sektor usaha. GEDSI berfokus pada kelompok inklusif (perempuan dan pendidikan dasar)."
@@ -977,17 +966,16 @@ with tab4:
             st.caption("Fitur yang digunakan: Rasio Debitur Perempuan, Rasio Debitur dengan Pendidikan SD/SMP.")
 
         if pilih_kabkot != "SEMUA":
-            st.warning("⚠️ Filter Kabupaten/Kota aktif. Harap ubah filter ke 'SEMUA' pada level provinsi agar mesin dapat memetakan perbandingan antar-wilayah.")
+            st.warning(":material/warning: Filter Kabupaten/Kota aktif. Harap ubah filter ke 'SEMUA' pada level provinsi agar mesin dapat memetakan perbandingan antar-wilayah.")
         else:
             fig_km, score_km, k_km = jalankan_kmeans_clustering(df_master, pilih_prov, mode_lensa)
             st.plotly_chart(fig_km, use_container_width=True)
             
             if mode_lensa == "Indikator dan Sektor Penyaluran":
-                st.info("💡 **Cara Membaca Indikator dan Sektor Penyaluran:** Sumbu horizontal menunjukkan kekuatan sektor pertanian, sedangkan sumbu vertikal menunjukkan kekuatan modal (Plafon/Orang). Gelembung besar menandakan dominasi sektor Perdagangan.")
+                st.info(":material/lightbulb: **Cara Membaca Indikator dan Sektor Penyaluran:** Sumbu horizontal menunjukkan kekuatan sektor pertanian, sedangkan sumbu vertikal menunjukkan kekuatan modal (Plafon/Orang). Gelembung besar menandakan dominasi sektor Perdagangan.")
             else:
-                st.info("💡 **Cara Membaca Sosial/GEDSI:** Kuadran Kanan-Atas (Episentrum kelompok rentan/subsisten). Kuadran Kiri-Bawah (Eksklusif: didominasi pria berpendidikan tinggi). Ukuran gelembung menunjukkan seberapa luas tingkat penetrasi fasilitas kredit.")
+                st.info(":material/lightbulb: **Cara Membaca Sosial/GEDSI:** Kuadran Kanan-Atas (Episentrum kelompok rentan/subsisten). Kuadran Kiri-Bawah (Eksklusif: didominasi pria berpendidikan tinggi). Ukuran gelembung menunjukkan seberapa luas tingkat penetrasi fasilitas kredit.")
                 
-    
         st.markdown("---")
         st.markdown("**Faktor Pendorong (Random Forest)**")
         fig_rf, r2_rf, _ = jalankan_rf_importance(df_master, pilih_prov)
@@ -1000,24 +988,22 @@ with tab4:
         """, unsafe_allow_html=True)
 
     else:
-        st.warning("Data historis tidak tersedia untuk menjalankan mesin analitik.")
+        st.warning(":material/warning: Data historis tidak tersedia untuk menjalankan mesin analitik.")
 
 # TAB 5: POLICY SIMULATOR
 with tab5:
     with st.expander("**Info Tab**", expanded=False):
         st.write('Berfungsi sebagai alat simulasi pengambilan kebijakan berdasarkan hasil analisis sektor usaha dan faktor pendorong dari Tab 4.')
 
-    st.markdown("#### ⚖️ Deterministik Simulasi Kebijakan Sektoral")
-    st.info("Simulator kebijakan ini memproyeksikan **Dampak Inklusi Sosial (GEDSI)** apabila eksekutif mengambil keputusan untuk menaikkan atau menurunkan alokasi pagu penyaluran pada sektor ekonomi tertentu. Basis perhitungan menggunakan *conversion rate* historis.")
+    st.markdown("#### :material/balance: Deterministik Simulasi Kebijakan Sektoral")
+    st.info(":material/lightbulb: Simulator kebijakan ini memproyeksikan **Dampak Inklusi Sosial (GEDSI)** apabila eksekutif mengambil keputusan untuk menaikkan atau menurunkan alokasi pagu penyaluran pada sektor ekonomi tertentu. Basis perhitungan menggunakan *conversion rate* historis.")
     
     if not df_master.empty:
-        # Menentukan Baseline (Program -> Tahun)
         col_prog, col_thn = st.columns(2)
         
         with col_prog:
-            pilihan_program_sim = st.radio("🎯 Fokus Simulasi Program:", ["SEMUA (KUR & UMi)", "Khusus KUR", "Khusus UMi"], horizontal=True)
+            pilihan_program_sim = st.radio(":material/ads_click: Fokus Simulasi Program:", ["SEMUA (KUR & UMi)", "Khusus KUR", "Khusus UMi"], horizontal=True)
             
-        # Terapkan filter program untuk mencari daftar tahun yang valid
         df_temp_year = df_master.copy()
         if pilihan_program_sim == "Khusus KUR":
             df_temp_year = df_temp_year[df_temp_year['PROGRAM'] == 'KUR']
@@ -1027,19 +1013,17 @@ with tab5:
         with col_thn:
             daftar_tahun = sorted(df_temp_year['TAHUN'].unique().tolist(), reverse=True)
             if not daftar_tahun:
-                st.warning("Tidak ada data untuk program ini.")
+                st.warning(":material/warning: Tidak ada data untuk program ini.")
                 tahun_terakhir = None
             else:
-                tahun_terakhir = st.selectbox("📅 Pilih Tahun Basis Konversi Sektoral:", daftar_tahun)
+                tahun_terakhir = st.selectbox(":material/calendar_month: Pilih Tahun Basis Konversi Sektoral:", daftar_tahun)
                 
-                # Menampilkan peringatan jika memilih "SEMUA" di tahun di mana KUR belum tersedia
                 if pilihan_program_sim == "SEMUA (KUR & UMi)" and tahun_terakhir > 2024:
-                    st.warning("⚠️ Catatan: Data Realisasi KUR hanya tersedia hingga April 2024. Simulasi untuk tahun 2025 ke atas murni menggunakan konversi data UMi.")
+                    st.warning(":material/warning: Catatan: Data Realisasi KUR hanya tersedia hingga April 2024. Simulasi untuk tahun 2025 ke atas murni menggunakan konversi data UMi.")
 
         if tahun_terakhir is not None:
             df_base = df_temp_year[df_temp_year['TAHUN'] == tahun_terakhir].copy()
 
-            # Terapkan Filter Wilayah dari Sidebar
             if pilih_prov != "SEMUA":
                 df_base = df_base[df_base['NAMA_PROVINSI'] == pilih_prov]
             if pilih_kabkot != "SEMUA":
@@ -1053,13 +1037,11 @@ with tab5:
                     SD_SMP=('PENDIDIKAN_SD_SMP', 'sum')
                 ).reset_index()
 
-                # Top 4 Sektor Terbesar
                 top_sektor = df_sektor.nlargest(4, 'TOTAL_PENYALURAN')['SEKTOR_USAHA'].tolist()
                 df_sektor['SEKTOR_SIM'] = np.where(df_sektor['SEKTOR_USAHA'].isin(top_sektor), df_sektor['SEKTOR_USAHA'], 'Sektor Lainnya')
                 
                 df_sim_base = df_sektor.groupby('SEKTOR_SIM').sum().reset_index()
 
-                # Conversion Rate (Daya Ungkit per Rp 1 Miliar)
                 df_sim_base['DEBITUR_PER_MILIAR'] = np.where(df_sim_base['TOTAL_PENYALURAN'] > 0, df_sim_base['TOTAL_DEBITUR'] / (df_sim_base['TOTAL_PENYALURAN'] / 1e9), 0)
                 df_sim_base['PCT_PEREMPUAN'] = np.where(df_sim_base['TOTAL_DEBITUR'] > 0, df_sim_base['PEREMPUAN'] / df_sim_base['TOTAL_DEBITUR'], 0)
                 df_sim_base['PCT_SD_SMP'] = np.where(df_sim_base['TOTAL_DEBITUR'] > 0, df_sim_base['SD_SMP'] / df_sim_base['TOTAL_DEBITUR'], 0)
@@ -1068,7 +1050,7 @@ with tab5:
                 col_slider, col_result = st.columns([1, 2.2])
 
                 with col_slider:
-                    st.markdown(f"**🎚️ Panel Rekalibrasi Pagu Sektoral**")
+                    st.markdown(f"**:material/tune: Panel Rekalibrasi Pagu Sektoral**")
                     st.caption(f"Basis Data Kalibrasi: Tahun {tahun_terakhir}")
                     
                     sliders = {}
@@ -1083,7 +1065,7 @@ with tab5:
                         )
                 
                 with col_result:
-                    st.markdown("**📊 Proyeksi Dampak Intervensi (Simulated Impact)**")
+                    st.markdown("**:material/bar_chart: Proyeksi Dampak Intervensi (Simulated Impact)**")
                     
                     df_sim_result = df_sim_base.copy()
                     df_sim_result['SIM_PENYALURAN'] = df_sim_result.apply(lambda row: row['TOTAL_PENYALURAN'] * (1 + (sliders[row['SEKTOR_SIM']] / 100)), axis=1)
@@ -1133,11 +1115,11 @@ with tab5:
                     )
                     st.plotly_chart(fig_sim, use_container_width=True)
             else:
-                st.warning("Data historis sektoral tidak tersedia untuk kombinasi program dan tahun ini.")
+                st.warning(":material/warning: Data historis sektoral tidak tersedia untuk kombinasi program dan tahun ini.")
         st.markdown("<hr style='border: 2px solid #374151; margin-top: 40px; margin-bottom: 30px;'>", unsafe_allow_html=True)
 
         # Prediktif Simulasi Kebijakan (Random Forest)
-        st.markdown("### 📇 Simulasi Kebijakan (Dampak Inklusi Sosial)")
+        st.markdown("### :material/analytics: Simulasi Kebijakan (Dampak Inklusi Sosial)")
         st.markdown("""
         <div style='background-color: var(--secondary-background-color); color: var(--text-color); padding: 15px; border-radius: 10px; border-left: 5px solid #8B5CF6; margin-bottom: 15px;'>
             Simulasikan Skenario: Jika berhasil mendorong peningkatan indikator inklusi demografi di bawah ini, berapa estimasi tambahan uang yang akan beredar di masyarakat berdasarkan model Machine Learning (Random Forest)?
@@ -1160,9 +1142,9 @@ with tab5:
         
         with col_ml_sim1:
             st.markdown("**Skenario Target Pertumbuhan Demografi:**")
-            sim_penetrasi = st.slider("📈 Kenaikan Rasio Penetrasi Kredit (Rasio Debitur per Penduduk Produktif)", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
-            sim_pendidikan = st.slider("🎓 Peningkatan Akses Lulusan SD/SMP", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
-            sim_perempuan = st.slider("👩 Pemberdayaan Pengusaha Perempuan", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
+            sim_penetrasi = st.slider(":material/trending_up: Kenaikan Rasio Penetrasi Kredit (Rasio Debitur per Penduduk Produktif)", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
+            sim_pendidikan = st.slider(":material/school: Peningkatan Akses Lulusan SD/SMP", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
+            sim_perempuan = st.slider(":material/woman: Pemberdayaan Debitur Perempuan", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
 
             st.caption(f"*(Auto-Calibrated Weights: Penetrasi {w_penetrasi*100:.1f}%, Pendidikan {w_pendidikan*100:.1f}%, Perempuan {w_perempuan*100:.1f}%)*")
         with col_ml_sim2:
@@ -1174,9 +1156,9 @@ with tab5:
             )
             
             if estimasi_dampak > 0:
-                st.success(f"💰 **+ Rp {estimasi_dampak / 1e9:,.2f} Miliar** per wilayah/sektor.")
+                st.success(f":material/payments: **+ Rp {estimasi_dampak / 1e9:,.2f} Miliar** per wilayah/sektor.")
                 st.caption(f"Estimasi tambahan perputaran uang di masyarakat dibandingkan kondisi saat ini (Baseline: Rp {rata_plafon / 1e9:,.2f} Miliar). *Kalkulasi ini menggunakan probabilitas kekuatan bobot (Feature Importance) dari algoritma Random Forest.*")
             else:
-                st.info("Geser slider di samping untuk melihat prediksi dampak kebijakan inklusi sosial terhadap perputaran ekonomi.")    
+                st.info(":material/lightbulb: Geser slider di samping untuk melihat prediksi dampak kebijakan inklusi sosial terhadap perputaran ekonomi.")    
     else:
-        st.warning("Menunggu sinkronisasi data master...")
+        st.warning(":material/hourglass_empty: Menunggu sinkronisasi data master...")
