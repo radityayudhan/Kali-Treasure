@@ -24,7 +24,7 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    .main-header { font-size: 42px !important; font-weight: 900; color: #38BDF8; margin-bottom: 0px; letter-spacing: 1px;}
+    .main-header { font-size: 42px !important; font-weight: 900; margin-bottom: 0px; letter-spacing: 1px;}
     .sub-header { font-size: 20px !important; font-weight: 500; color: var(--text-color); opacity: 0.8; margin-bottom: 30px; }
     .stTabs [data-baseweb="tab-list"] { gap: 20px; }
     .stTabs [data-baseweb="tab"] { padding-top: 10px; padding-bottom: 10px; }
@@ -76,7 +76,7 @@ with st.sidebar:
     st.caption("Tim Bu Novi | Kanwil DJPb Prov. Kaltara 2026")
 
 # AREA DASHBOARD
-st.markdown('<p class="main-header">KALI-TREASURE</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header"><span style="color: #1A5E9A;">KALI-</span><span style="color: #F29900;">TREASURE</span></p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Kalimantan Treasury Radar for SME Financing</p>', unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
