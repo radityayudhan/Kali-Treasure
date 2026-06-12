@@ -89,6 +89,9 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 # TAB 1
 with tab1:
+    with st.expander("**Info Tab**", expanded=False):
+        st.write("Tab ini menyajikan pemetaan realisasi pembiayaan UMKM serta pengukuran inklusi sosial (pemberdayaan perempuan dan pendidikan dasar) di tingkat provinsi hingga kabupaten/kota untuk Regional Kalimantan.")
+    
     st.markdown("#### Sebaran Penyaluran & Inklusi Sosial (GEDSI)")
     
     if not df_master.empty:
@@ -602,6 +605,9 @@ with tab1:
 
 # TAB 2: TREN & KINERJA SEKTORAL
 with tab2:
+    with st.expander("**Info Tab**", expanded=False):
+        st.write("Menyajikan tren penyaluran KUR/UMi, distribusi sektor usaha, dan analisis transisi pembiayaan dari UMi ke KUR.")
+
     st.markdown("#### Analisis Tren Waktu & Proporsi Sektor Usaha")
     
     if not df_master.empty:
@@ -766,6 +772,9 @@ with tab2:
     st.markdown("---")
 
 with tab3:
+    with st.expander("**Info Tab**", expanded=False):
+        st.write("Menampilkan anomali data terkait inefisiensi skema kredit, daya ungkit subsidi bunga, serta proyeksi beban subsidi menggunakan dua pendekatan model.")
+        
     st.markdown("#### 🚨 Anomali Inefisiensi Skema Pembiayaan (2018-2021)")
     st.info("Analisis ini memetakan riwayat efisiensi tiap Skema Kredit. Jika terdapat titik anomali di sebelah Kuadran Kiri Atas adalah titik bahwa **Skema tertentu beban subsidi negara sangat besar per debitur, namun nominal pembiayaan yang disalurkan sangat kecil.**\nData merupakan irisan antara data Realisasi KUR dan Subsisi KUR sepanjang tahun 2018-2021")
     
@@ -947,6 +956,9 @@ with tab3:
                     st.error(f"Terjadi kesalahan sistematik pada mesin prediksi: {e}")
 
 with tab4:
+    with st.expander("**Info Tab**", expanded=False):
+        st.write('Memuat hasil klasterisasi sektor usaha potensial per kabupaten/kota, serta analisis faktor pendorong plafon pembiayaan berdasarkan tingkat intervensinya.')
+
     st.markdown("#### 🧩 Clustering & Feature Importance untuk Profiling Wilayah")
     st.info("Analisis ini mengkombinasikan metode *Unsupervised Learning* (K-Means) dan *Supervised Learning* (Random Forest) untuk mengelompokkan wilayah dan menilai fitur yang paling penting dalam pengambilan keputusan.")
 
@@ -992,6 +1004,9 @@ with tab4:
 
 # TAB 5: POLICY SIMULATOR
 with tab5:
+    with st.expander("**Info Tab**", expanded=False):
+        st.write('Berfungsi sebagai alat simulasi pengambilan kebijakan berdasarkan hasil analisis sektor usaha dan faktor pendorong dari Tab 4.')
+
     st.markdown("#### ⚖️ Deterministik Simulasi Kebijakan Sektoral")
     st.info("Simulator kebijakan ini memproyeksikan **Dampak Inklusi Sosial (GEDSI)** apabila eksekutif mengambil keputusan untuk menaikkan atau menurunkan alokasi pagu penyaluran pada sektor ekonomi tertentu. Basis perhitungan menggunakan *conversion rate* historis.")
     
