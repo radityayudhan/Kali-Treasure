@@ -982,8 +982,12 @@ with tab4:
         fig_rf, r2_rf, _ = jalankan_rf_importance(df_master, pilih_prov)
         st.plotly_chart(fig_rf, use_container_width=True)
         
-        st.markdown("> **Interpretasi Grafik:** Bar chart di atas menunjukkan seberapa kuat intervensi pada suatu variabel berdampak pada total plafon kredit.")
-        
+        st.markdown("""
+        <div style='background-color: #1F2937; padding: 15px; border-radius: 10px; border-left: 5px solid #8B5CF6; margin-bottom: 15px;'>
+            <b>Interpretasi Grafik:</b> Bar chart di atas menunjukkan seberapa kuat intervensi pada suatu variabel berdampak pada total plafon kredit.
+        </div>
+        """, unsafe_allow_html=True)
+
     else:
         st.warning("Data historis tidak tersedia untuk menjalankan mesin analitik.")
 
