@@ -9,6 +9,8 @@ import plotly.express as px
 # Import Model
 from model.ml_forecasting import jalankan_prediksi_wilayah, siapkan_data_geografis
 from model.ml_sarimax import jalankan_sarimax
+from model.ml_kmeans import jalankan_kmeans_clustering
+from model.ml_random_forest import jalankan_rf_importance
 
 # Import Utils
 from utils.data_loader import load_and_filter_geojson, load_and_process_raw_data, load_ews_skema_data, load_leverage_trend_data, load_graduasi_trend_data
@@ -77,10 +79,11 @@ with st.sidebar:
 st.markdown('<p class="main-header">KALI-TREASURE</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Kalimantan Treasury Radar for SME Financing</p>', unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🗺️ Peta Realisasi & Inklusi", 
     "📈 Tren & Proporsi Sektor Usaha", 
     "🤖 Anomali Inefisiensi Subsidi & Forecasting", 
+    "🧩 Clustering & Feature Importance",
     "⚖️ Simulasi Kebijakan"
 ])
 
@@ -586,7 +589,7 @@ with tab1:
             else:
                 st.warning("Analisis irisan pendidikan ini hanya mendukung perhitungan 'Jumlah Debitur (Orang)'.")
                 fig_dinamis = None
-                
+
         if fig_dinamis is not None:
             fig_dinamis.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
@@ -944,9 +947,49 @@ with tab3:
                 except Exception as e:
                     st.error(f"Terjadi kesalahan sistematik pada mesin prediksi: {e}")
 
-# TAB 4: POLICY SIMULATOR
 with tab4:
-    st.markdown("#### ⚖️ Deterministik What-If Policy Simulator")
+    st.markdown("#### 🧩 Clustering & Feature Importance untuk Profiling Wilayah")
+    st.info("Analisis ini mengkombinasikan metode *Unsupervised Learning* (K-Means) dan *Supervised Learning* (Random Forest) untuk mengelompokkan wilayah dan menilai fitur yang paling penting dalam pengambilan keputusan.")
+
+    if not df_master.empty:
+        st.markdown("**K-Means Clustering**")
+        
+        mode_lensa = st.radio(
+            "🔎 Pilih Fitur Analisis (Parameter Matriks K-Means):", 
+            ["Indikator dan Sektor Penyaluran", "Sosial/GEDSI"], 
+            horizontal=True,
+            help="Indikator dan Sektor Penyaluran berfokus pada rasio debitur, penyaluran, dan sektor usaha. GEDSI berfokus pada kelompok inklusif (perempuan dan pendidikan dasar)."
+        )
+        if mode_lensa == "Indikator dan Sektor Penyaluran":
+            st.caption("Fitur yang digunakan: Average Penyaluran per Debitur, Rasio Debitur per Penduduk Usia Produktif, % Sektor Pertanian, dan % Sektor Perdagangan.")
+        else:
+            st.caption("Fitur yang digunakan: Rasio Debitur Perempuan, Rasio Debitur dengan Pendidikan SD/SMP.")
+
+        if pilih_kabkot != "SEMUA":
+            st.warning("⚠️ Filter Kabupaten/Kota aktif. Harap ubah filter ke 'SEMUA' pada level provinsi agar mesin dapat memetakan perbandingan antar-wilayah.")
+        else:
+            fig_km, score_km, k_km = jalankan_kmeans_clustering(df_master, pilih_prov, mode_lensa)
+            st.plotly_chart(fig_km, use_container_width=True)
+            
+            if mode_lensa == "Indikator dan Sektor Penyaluran":
+                st.info("💡 **Cara Membaca Indikator dan Sektor Penyaluran:** Sumbu horizontal menunjukkan kekuatan sektor pertanian, sedangkan sumbu vertikal menunjukkan kekuatan modal (Plafon/Orang). Gelembung besar menandakan dominasi sektor Perdagangan.")
+            else:
+                st.info("💡 **Cara Membaca Sosial/GEDSI:** Kuadran Kanan-Atas (Episentrum kelompok rentan/subsisten). Kuadran Kiri-Bawah (Eksklusif: didominasi pria berpendidikan tinggi). Ukuran gelembung menunjukkan seberapa luas tingkat penetrasi fasilitas kredit.")
+                
+    
+        st.markdown("---")
+        st.markdown("**Faktor Pendorong (Random Forest)**")
+        fig_rf, r2_rf, _ = jalankan_rf_importance(df_master, pilih_prov)
+        st.plotly_chart(fig_rf, use_container_width=True)
+        
+        st.markdown("> **Interpretasi Grafik:** Bar chart di atas menunjukkan seberapa kuat intervensi pada suatu variabel berdampak pada total plafon kredit.")
+        
+    else:
+        st.warning("Data historis tidak tersedia untuk menjalankan mesin analitik.")
+
+# TAB 5: POLICY SIMULATOR
+with tab5:
+    st.markdown("#### ⚖️ Deterministik Simulasi Kebijakan Sektoral")
     st.info("Simulator kebijakan ini memproyeksikan **Dampak Inklusi Sosial (GEDSI)** apabila eksekutif mengambil keputusan untuk menaikkan atau menurunkan alokasi pagu penyaluran pada sektor ekonomi tertentu. Basis perhitungan menggunakan *conversion rate* historis.")
     
     if not df_master.empty:
@@ -1074,5 +1117,49 @@ with tab4:
                     st.plotly_chart(fig_sim, use_container_width=True)
             else:
                 st.warning("Data historis sektoral tidak tersedia untuk kombinasi program dan tahun ini.")
+        st.markdown("<hr style='border: 2px solid #374151; margin-top: 40px; margin-bottom: 30px;'>", unsafe_allow_html=True)
+
+        # Prediktif Simulasi Kebijakan (Random Forest)
+        st.markdown("### 📇 Simulasi Kebijakan (Dampak Inklusi Sosial)")
+        st.markdown("""
+        <div style='background-color: #1F2937; padding: 15px; border-radius: 10px; border-left: 5px solid #8B5CF6; margin-bottom: 15px;'>
+            Simulasikan Skenario: Jika berhasil mendorong peningkatan indikator inklusi demografi di bawah ini, berapa estimasi tambahan uang yang akan beredar di masyarakat berdasarkan model Machine Learning (Random Forest)?
+        </div>
+        """, unsafe_allow_html=True)
+        
+        df_simulasi_ml = df_master.copy()
+        if pilih_prov != "SEMUA":
+            df_simulasi_ml = df_simulasi_ml[df_simulasi_ml['NAMA_PROVINSI'] == pilih_prov]
+        
+        rata_plafon = df_simulasi_ml['TOTAL_PENYALURAN'].mean() if not df_simulasi_ml.empty else 0
+        
+        col_ml_sim1, col_ml_sim2 = st.columns([1, 1.5])
+
+        _, _, bobot_rf = jalankan_rf_importance(df_master, pilih_prov)
+        
+        w_penetrasi = bobot_rf.get('RASIO_PENETRASI', 0)
+        w_pendidikan = bobot_rf.get('PCT_PEND_DASAR', 0)
+        w_perempuan = bobot_rf.get('PCT_PEREMPUAN', 0)
+        
+        with col_ml_sim1:
+            st.markdown("**Skenario Target Pertumbuhan Demografi:**")
+            sim_penetrasi = st.slider("📈 Kenaikan Rasio Penetrasi Kredit (Rasio Debitur per Penduduk Produktif)", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
+            sim_pendidikan = st.slider("🎓 Peningkatan Akses Lulusan SD/SMP", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
+            sim_perempuan = st.slider("👩 Pemberdayaan Pengusaha Perempuan", min_value=0, max_value=50, value=0, step=5, format="+%d%%")
+
+            st.caption(f"*(Auto-Calibrated Weights: Penetrasi {w_penetrasi*100:.1f}%, Pendidikan {w_pendidikan*100:.1f}%, Perempuan {w_perempuan*100:.1f}%)*")
+        with col_ml_sim2:
+            st.markdown("**Prediksi Tambahan Dampak Fiskal Regional:**")
+            estimasi_dampak = rata_plafon * (
+                (sim_penetrasi / 100 * w_penetrasi) + 
+                (sim_pendidikan / 100 * w_pendidikan) + 
+                (sim_perempuan / 100 * w_perempuan)
+            )
+            
+            if estimasi_dampak > 0:
+                st.success(f"💰 **+ Rp {estimasi_dampak / 1e9:,.2f} Miliar** per wilayah/sektor.")
+                st.caption(f"Estimasi tambahan perputaran uang di masyarakat dibandingkan kondisi saat ini (Baseline: Rp {rata_plafon / 1e9:,.2f} Miliar). *Kalkulasi ini menggunakan probabilitas kekuatan bobot (Feature Importance) dari algoritma Random Forest.*")
+            else:
+                st.info("Geser slider di samping untuk melihat prediksi dampak kebijakan inklusi sosial terhadap perputaran ekonomi.")    
     else:
         st.warning("Menunggu sinkronisasi data master...")
